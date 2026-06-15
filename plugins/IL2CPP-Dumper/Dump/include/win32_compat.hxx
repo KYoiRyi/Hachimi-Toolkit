@@ -61,6 +61,11 @@ inline bool FindNextFileA(HANDLE hFindFile, WIN32_FIND_DATAA* lpFindFileData) {
 inline void FindClose(HANDLE hFindFile) {}
 inline bool DeleteFileA(const char* lpFileName) { return unlink(lpFileName) == 0; }
 
+inline int fopen_s(FILE** pFile, const char *filename, const char *mode) {
+    *pFile = fopen(filename, mode);
+    return *pFile ? 0 : errno;
+}
+
 #define CP_UTF8 65001
 
 template<typename T>
