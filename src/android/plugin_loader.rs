@@ -81,8 +81,12 @@ pub fn load_libraries() -> Vec<Plugin> {
 }
 
 fn get_external_plugins_dir() -> PathBuf {
-    let base_dir = crate::android::utils::get_game_dir();
-    base_dir.join("plugins")
+    let package_name = crate::android::game_impl::get_package_name();
+    let mut path = Path::new("/sdcard/Android/data").join(package_name);
+    path.push("files");
+    path.push("hachimi");
+    path.push("plugins");
+    path
 }
 
 fn get_internal_cache_dir() -> Option<PathBuf> {
