@@ -35,12 +35,17 @@ inline void GetSystemInfo(SYSTEM_INFO* si) {
 struct MEMORYSTATUSEX {
     DWORD dwLength;
     DWORDLONG ullTotalPhys;
+    DWORDLONG ullAvailPhys;
 };
 
-inline void GlobalMemoryStatusEx(MEMORYSTATUSEX* ms) {
+inline bool GlobalMemoryStatusEx(MEMORYSTATUSEX* ms) {
     long pages = sysconf(_SC_PHYS_PAGES);
     long page_size = sysconf(_SC_PAGE_SIZE);
     ms->ullTotalPhys = (DWORDLONG)pages * page_size;
+    
+    long avail_pages = sysconf(_SC_AVPHYS_PAGES);
+    ms->ullAvailPhys = (DWORDLONG)avail_pages * page_size;
+    return true;
 }
 
 struct WIN32_FIND_DATAA {
