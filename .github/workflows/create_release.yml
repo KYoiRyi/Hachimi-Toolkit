@@ -30,7 +30,6 @@ jobs:
       - name: Grant execute permission to build scripts
         run: |
           chmod +x tools/android/build.sh
-          chmod +x tools/android/build_plugins.sh
       - uses: dtolnay/rust-toolchain@stable
       - name: Build Hachimi for Android
         run: |
@@ -38,6 +37,30 @@ jobs:
           RELEASE=1 ./tools/android/build.sh
         env:
           HACHIMI_IGNORE_DIRTY: "true"
+
+      - name: Attest Android
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            build/*.so
+            build/sha256.json
+
+      - name: Upload Android binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: android
+          path: |
+            build/*.so
+            build/sha256.json
+          
+  build-plugins:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Grant execute permission to build script
+        run: chmod +x tools/android/build_plugins.sh
 
       - name: Setup NDK
         uses: nttld/setup-ndk@v1
@@ -48,23 +71,19 @@ jobs:
       - name: Build Plugins
         run: ./tools/android/build_plugins.sh
 
-      - name: Attest Android
+      - name: Attest Plugins
         uses: actions/attest@v4
         with:
           subject-path: |
-            build/*.so
             build/plugins/*.so
-            build/sha256.json
 
-      - name: Upload Android binaries
+      - name: Upload Plugin binaries
         uses: actions/upload-artifact@v7
         with:
-          name: android
+          name: android-plugins
           path: |
-            build/*.so
             build/plugins/*.so
-            build/sha256.json
-          
+
   build-windows:
     runs-on: windows-latest
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
@@ -166,7 +185,7 @@ jobs:
             build/hachimi_installer.exe
 
   create-release:
-    needs: [build-android, build-windows]
+    needs: [build-android, build-windows, build-plugins]
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
     steps:
@@ -238,4 +257,5 @@ jobs:
           files: |
             artifacts/android/*
             artifacts/windows/*
+            artifacts/android-plugins/*
           tag_name: ${{ env.RELEASE_VERSION }}
