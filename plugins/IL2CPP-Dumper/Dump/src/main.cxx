@@ -13,14 +13,8 @@
 static void * g_il2cppThread = nullptr;
 static bool g_gcRegistered = false;
 
-struct HachimiVtable {
-    void* padding[30];
-    void (*log)(int level, const char* target, const char* message);
-    void* padding2[2];
-    bool (*gui_show_notification)(const char* message);
-};
-
-static const HachimiVtable* g_vtable = nullptr;
+typedef void* (*HachimiGetApiFn)(const char* name);
+static bool (*g_gui_show_notification)(const char* message) = nullptr;
 
 static bool RegisterThreadWithGC() {
     if (g_gcRegistered) return true;
@@ -117,8 +111,8 @@ void* DumpThread(void* arg) {
                 Log(std::to_string(dumper.images.size()) + " assemblies");
                 dumper.DumpAllToFiles();
                 
-                if (g_vtable && g_vtable->gui_show_notification) {
-                    g_vtable->gui_show_notification("IL2CPP Dump completed successfully!");
+                if (g_gui_show_notification) {
+                    g_gui_show_notification("IL2CPP Dump completed successfully!");
                 }
             }
         }
@@ -133,9 +127,12 @@ void* DumpThread(void* arg) {
     return nullptr;
 }
 
-extern "C" __attribute__((visibility("default"))) bool hachimi_init_v3(const HachimiVtable* vtable) {
-    g_vtable = vtable;
-    SetHachimiLog(vtable->log);
+extern "C" __attribute__((visibility("default"))) bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
+    if (get_api) {
+        auto log_fn = (void (*)(int, const char*, const char*))get_api("log");
+        SetHachimiLog(log_fn);
+        g_gui_show_notification = (bool (*)(const char*))get_api("gui_show_notification");
+    }
 
     std::string pkg = GetPackageName();
     g_outputDir = "/sdcard/Android/media/" + pkg + "/hachimi/DumpOutput";
