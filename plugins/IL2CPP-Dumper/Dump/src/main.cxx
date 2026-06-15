@@ -44,20 +44,10 @@ static bool RegisterThreadWithGC() {
     return false;
 }
 
-static bool WaitForIl2CppReady() {
-    const int totalTimeoutMs = 90000;
-    int elapsed = 0;
-
-    void* handle = nullptr;
-    while (!handle && elapsed < totalTimeoutMs) {
-        handle = dlopen("libil2cpp.so", RTLD_NOLOAD | RTLD_LAZY);
-        if (handle) break;
-        usleep(500000);
-        elapsed += 500;
-    }
-
+static bool CheckIl2CppReady() {
+    void* handle = dlopen("libil2cpp.so", RTLD_NOLOAD | RTLD_LAZY);
     if (!handle) {
-        Log("[error] libil2cpp.so never loaded");
+        Log("[error] libil2cpp.so not loaded");
         return false;
     }
 
@@ -68,13 +58,11 @@ static bool WaitForIl2CppReady() {
         return false;
     }
 
-    while (!(api::get_domain && api::get_domain()) && elapsed < totalTimeoutMs) {
-        usleep(500000);
-        elapsed += 500;
+    if (!(api::get_domain && api::get_domain())) {
+        Log("[error] domain not ready");
+        return false;
     }
 
-    Log("Domain ready, settling for 12s before touching IL2CPP...");
-    usleep(12000000);
     return true;
 }
 
@@ -92,9 +80,12 @@ static std::string GetPackageName() {
 }
 
 void* DumpThread(void* arg) {
-    Log("DumpThread started. Waiting for IL2CPP runtime...");
+    Log("DumpThread started. IL2CPP runtime should be ready.");
 
-    if (WaitForIl2CppReady()) {
+    // Minor delay to let the game settle after initialization
+    usleep(3000000);
+
+    if (CheckIl2CppReady()) {
         if (!g_il2cppThread && api::thread_attach) {
             void* domain = api::get_domain ? api::get_domain() : nullptr;
             if (domain) {
@@ -141,9 +132,20 @@ extern "C" __attribute__((visibility("default"))) bool hachimi_init_v3(HachimiGe
 
     Log("IL2CPP-Dumper Plugin Initialized! Output Dir: " + g_outputDir);
 
-    pthread_t t;
-    pthread_create(&t, nullptr, DumpThread, nullptr);
-    pthread_detach(t);
+    auto register_init = (bool (*)(void (*)(void*), void*))get_api("hachimi_register_on_game_initialized");
+    if (register_init) {
+        Log("Using GameInitialized callback to spawn dump thread...");
+        register_init([](void* userdata) {
+            pthread_t t;
+            pthread_create(&t, nullptr, DumpThread, nullptr);
+            pthread_detach(t);
+        }, nullptr);
+    } else {
+        Log("Fallback: Spawning dump thread immediately (might be unsafe)...");
+        pthread_t t;
+        pthread_create(&t, nullptr, DumpThread, nullptr);
+        pthread_detach(t);
+    }
 
     return true;
 }
