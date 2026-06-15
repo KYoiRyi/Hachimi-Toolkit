@@ -1129,6 +1129,18 @@ impl Gui {
                         ui.label(t!("menu.hashed_dict_entries", count = hashed_dict_count));
                         ui.separator();
 
+                        ui.heading("Loaded Plugins");
+                        if let Ok(plugins) = hachimi.plugins.lock() {
+                            if plugins.is_empty() {
+                                ui.label("No plugins loaded.");
+                            } else {
+                                for plugin in plugins.iter() {
+                                    ui.label(format!("• {}", plugin.name));
+                                }
+                            }
+                        }
+                        ui.separator();
+
                         ui.heading(t!("menu.config_heading"));
                         if ui.button(t!("menu.open_config_editor")).clicked() {
                             show_window = Some(Box::new(ConfigEditor::new()));
