@@ -12,5 +12,6 @@ add_library(il2cpp_dumper SHARED
 )
 
 target_include_directories(il2cpp_dumper PRIVATE Dump/include)
+target_compile_options(il2cpp_dumper PRIVATE -include win32_compat.hxx)
 target_link_libraries(il2cpp_dumper log dl)
 set_target_properties(il2cpp_dumper PROPERTIES CXX_STANDARD 17)

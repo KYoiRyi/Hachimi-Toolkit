@@ -10,7 +10,7 @@
 
 Dumper::Dumper( ) {
     api::init( );
-    Sleep( 500 );
+    usleep((500 ) * 1000);
     if ( !api::initialized ) {
         return;
     }
@@ -611,7 +611,7 @@ static std::string EscapeStr( const std::string & s ) {
         default:
             if ( static_cast< unsigned char >( c ) < 0x20 ) {
                 char buf [ 8 ];
-                sprintf_s( buf, "\\x%02X", static_cast< unsigned char >( c ) );
+                sprintf( buf, "\\x%02X", static_cast< unsigned char >( c ) );
                 r += buf;
             }
             else {

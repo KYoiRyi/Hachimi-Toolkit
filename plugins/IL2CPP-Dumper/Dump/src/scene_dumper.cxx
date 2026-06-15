@@ -1,3 +1,4 @@
+#include <time.h>
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "../include/scene_dumper.hxx"
@@ -57,7 +58,7 @@ namespace {
         const char * tier = ( g_hwTier == HwTier::LOW ) ? "LOW"
             : ( g_hwTier == HwTier::MID ) ? "MID"
             : "HIGH";
-        sprintf_s( buf, "hardware: %s  cores=%lu  ram=%lluGB  yield=%dms/%d", tier,
+        sprintf( buf, "hardware: %s  cores=%lu  ram=%lluGB  yield=%dms/%d", tier,
             cores, ramGb, g_yieldMs, g_yieldEveryN );
         Log( buf );
     }
@@ -317,7 +318,7 @@ namespace {
             default:
                 if ( static_cast< unsigned char >( c ) < 0x20 ) {
                     char b [ 8 ];
-                    sprintf_s( b, "\\x%02X", static_cast< unsigned char >( c ) );
+                    sprintf( b, "\\x%02X", static_cast< unsigned char >( c ) );
                     r += b;
                 }
                 else
@@ -535,30 +536,30 @@ namespace {
                         }
                         else if ( typeName == "System.Single" || typeName == "float" ) {
                             char nb [ 32 ];
-                            sprintf_s( nb, "%.4f", *reinterpret_cast< const float * >( fp ) );
+                            sprintf( nb, "%.4f", *reinterpret_cast< const float * >( fp ) );
                             out << nb;
                         }
                         else if ( typeName == "System.Double" || typeName == "double" ) {
                             char nb [ 32 ];
-                            sprintf_s( nb, "%.4f", *reinterpret_cast< const double * >( fp ) );
+                            sprintf( nb, "%.4f", *reinterpret_cast< const double * >( fp ) );
                             out << nb;
                         }
                         else if ( typeName == "UnityEngine.Vector3" ) {
                             const Vector3 * v = reinterpret_cast< const Vector3 * >( fp );
                             char nb [ 64 ];
-                            sprintf_s( nb, "(%.3f, %.3f, %.3f)", v->x, v->y, v->z );
+                            sprintf( nb, "(%.3f, %.3f, %.3f)", v->x, v->y, v->z );
                             out << nb;
                         }
                         else if ( typeName == "UnityEngine.Vector2" ) {
                             const float * v = reinterpret_cast< const float * >( fp );
                             char nb [ 48 ];
-                            sprintf_s( nb, "(%.3f, %.3f)", v [ 0 ], v [ 1 ] );
+                            sprintf( nb, "(%.3f, %.3f)", v [ 0 ], v [ 1 ] );
                             out << nb;
                         }
                         else if ( typeName == "UnityEngine.Quaternion" ) {
                             const Quaternion * q = reinterpret_cast< const Quaternion * >( fp );
                             char nb [ 80 ];
-                            sprintf_s( nb, "(%.3f, %.3f, %.3f, %.3f)", q->x, q->y, q->z, q->w );
+                            sprintf( nb, "(%.3f, %.3f, %.3f, %.3f)", q->x, q->y, q->z, q->w );
                             out << nb;
                         }
                         else {
@@ -568,7 +569,7 @@ namespace {
                             }
                             else {
                                 char ab [ 48 ];
-                                sprintf_s( ab, "<obj 0x%llX>",
+                                sprintf( ab, "<obj 0x%llX>",
                                     reinterpret_cast< unsigned long long >( raw ) );
                                 out << ab;
                             }
@@ -759,11 +760,11 @@ void SceneDumper::Dump( ) {
     Log( g_deepFieldDump ? "scene snapshot: deep mode (MB fields)"
         : "scene snapshot: light mode" );
 
-    SYSTEMTIME st;
-    GetLocalTime( &st );
-    char ts [ 64 ];
-    sprintf_s( ts, "%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay,
-        st.wHour, st.wMinute, st.wSecond );
+    time_t t = time(NULL);
+    struct tm st;
+    localtime_r(&t, &st);
+    char ts[64];
+    sprintf(ts, "%04d%02d%02d_%02d%02d%02d", st.tm_year + 1900, st.tm_mon + 1, st.tm_mday, st.tm_hour, st.tm_min, st.tm_sec);
 
     std::string base =
         g_outputDir.empty( ) ? std::string( "C:\\" ) : g_outputDir + "\\";
@@ -812,13 +813,13 @@ void SceneDumper::Dump( ) {
 
     for ( int32_t i = 0; i < walkLimit; ++i ) {
         if ( g_yieldEveryN > 0 && ( i % g_yieldEveryN ) == 0 && i > 0 ) {
-            Sleep( g_yieldMs );
+            usleep((g_yieldMs ) * 1000);
         }
 
         if ( i > 0 && ( i % reportEvery ) == 0 ) {
             DWORD elapsed = GetTickCount( ) - startMs;
             char pb [ 96 ];
-            sprintf_s( pb, "%d/%d  %lu ms", i, walkLimit, elapsed );
+            sprintf( pb, "%d/%d  %lu ms", i, walkLimit, elapsed );
             Log( pb );
             if ( !MemoryHealthy( ) ) {
                 Log( "low free RAM, aborting dump" );
@@ -886,12 +887,12 @@ void SceneDumper::Dump( ) {
                 << "\n";
 
             char buf [ 160 ];
-            sprintf_s( buf, "  pos=(%.3f, %.3f, %.3f)", pos.x, pos.y, pos.z );
+            sprintf( buf, "  pos=(%.3f, %.3f, %.3f)", pos.x, pos.y, pos.z );
             out << buf << "\n";
-            sprintf_s( buf, "  rot=(%.4f, %.4f, %.4f, %.4f)", rot.x, rot.y, rot.z,
+            sprintf( buf, "  rot=(%.4f, %.4f, %.4f, %.4f)", rot.x, rot.y, rot.z,
                 rot.w );
             out << buf << "\n";
-            sprintf_s( buf, "  scale=(%.3f, %.3f, %.3f)", scale.x, scale.y, scale.z );
+            sprintf( buf, "  scale=(%.3f, %.3f, %.3f)", scale.x, scale.y, scale.z );
             out << buf << "\n";
             if ( parentId )
                 out << "  parent_id=" << parentId << "\n";
@@ -920,7 +921,7 @@ void SceneDumper::Dump( ) {
     }
     DWORD totalMs = GetTickCount( ) - startMs;
     char fb [ 256 ];
-    sprintf_s( fb, "dumped %d / %d  (%d skipped, %lu ms) -> %s", dumped, walkLimit,
+    sprintf( fb, "dumped %d / %d  (%d skipped, %lu ms) -> %s", dumped, walkLimit,
         skipped, totalMs, path.c_str( ) );
     Log( fb );
 }
@@ -942,11 +943,11 @@ void SceneDumper::DumpCamera( ) {
         return;
     }
 
-    SYSTEMTIME st;
-    GetLocalTime( &st );
-    char ts [ 64 ];
-    sprintf_s( ts, "%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay,
-        st.wHour, st.wMinute, st.wSecond );
+    time_t t = time(NULL);
+    struct tm st;
+    localtime_r(&t, &st);
+    char ts[64];
+    sprintf(ts, "%04d%02d%02d_%02d%02d%02d", st.tm_year + 1900, st.tm_mon + 1, st.tm_mday, st.tm_hour, st.tm_min, st.tm_sec);
 
     std::string base =
         g_outputDir.empty( ) ? std::string( "C:\\" ) : g_outputDir + "\\";
@@ -982,21 +983,21 @@ void SceneDumper::DumpCamera( ) {
     out << "# Main camera state captured " << ts << "\n";
     out << "# all vectors are world-space; fov in degrees\n\n";
     char b [ 256 ];
-    sprintf_s( b, "pos     = (%.4f, %.4f, %.4f)", pos.x, pos.y, pos.z );
+    sprintf( b, "pos     = (%.4f, %.4f, %.4f)", pos.x, pos.y, pos.z );
     out << b << "\n";
-    sprintf_s( b, "forward = (%.4f, %.4f, %.4f)", fwd.x, fwd.y, fwd.z );
+    sprintf( b, "forward = (%.4f, %.4f, %.4f)", fwd.x, fwd.y, fwd.z );
     out << b << "\n";
-    sprintf_s( b, "right   = (%.4f, %.4f, %.4f)", right.x, right.y, right.z );
+    sprintf( b, "right   = (%.4f, %.4f, %.4f)", right.x, right.y, right.z );
     out << b << "\n";
-    sprintf_s( b, "up      = (%.4f, %.4f, %.4f)", up.x, up.y, up.z );
+    sprintf( b, "up      = (%.4f, %.4f, %.4f)", up.x, up.y, up.z );
     out << b << "\n";
-    sprintf_s( b, "fov_deg = %.4f", fov );
+    sprintf( b, "fov_deg = %.4f", fov );
     out << b << "\n";
-    sprintf_s( b, "aspect  = %.4f", aspect );
+    sprintf( b, "aspect  = %.4f", aspect );
     out << b << "\n";
-    sprintf_s( b, "near    = %.4f", nearC );
+    sprintf( b, "near    = %.4f", nearC );
     out << b << "\n";
-    sprintf_s( b, "far     = %.4f", farC );
+    sprintf( b, "far     = %.4f", farC );
     out << b << "\n";
     out.close( );
     Log( "camera -> " + path );
@@ -1040,11 +1041,11 @@ void SceneDumper::DumpMeshColliders( ) {
     if ( cnt == 0 )
         return;
 
-    SYSTEMTIME st;
-    GetLocalTime( &st );
-    char ts [ 64 ];
-    sprintf_s( ts, "%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay,
-        st.wHour, st.wMinute, st.wSecond );
+    time_t t = time(NULL);
+    struct tm st;
+    localtime_r(&t, &st);
+    char ts[64];
+    sprintf(ts, "%04d%02d%02d_%02d%02d%02d", st.tm_year + 1900, st.tm_mon + 1, st.tm_mday, st.tm_hour, st.tm_min, st.tm_sec);
 
     std::string base = g_outputDir.empty( ) ? "C:\\" : g_outputDir + "\\";
     std::string idxPath = base + "IL2CPP_MeshColliders_" + ts + ".txt";
@@ -1068,7 +1069,7 @@ void SceneDumper::DumpMeshColliders( ) {
     int written = 0, skipped = 0;
     for ( int32_t i = 0; i < cnt; ++i ) {
         if ( ( i % 100 ) == 0 && i > 0 )
-            Sleep( g_yieldMs );
+            usleep((g_yieldMs ) * 1000);
 
         void * mc = ArrayElement( arr, i );
         if ( !mc ) {
@@ -1186,11 +1187,11 @@ void SceneDumper::DumpClassesByList( ) {
 
     GcSuspendScope gcGuard;
 
-    SYSTEMTIME st;
-    GetLocalTime( &st );
-    char ts [ 64 ];
-    sprintf_s( ts, "%04d%02d%02d_%02d%02d%02d", st.wYear, st.wMonth, st.wDay,
-        st.wHour, st.wMinute, st.wSecond );
+    time_t t = time(NULL);
+    struct tm st;
+    localtime_r(&t, &st);
+    char ts[64];
+    sprintf(ts, "%04d%02d%02d_%02d%02d%02d", st.tm_year + 1900, st.tm_mon + 1, st.tm_mday, st.tm_hour, st.tm_min, st.tm_sec);
 
     std::string outPath = base + "IL2CPP_Scan_" + ts + ".txt";
     std::ofstream out( outPath, std::ios::out | std::ios::trunc );
@@ -1252,7 +1253,7 @@ void SceneDumper::DumpClassesByList( ) {
                     Vector3 p = { 0, 0, 0 };
                     UnboxAs( Invoke( mGetPosition, trans ), p );
                     char b [ 96 ];
-                    sprintf_s( b, "    pos=(%.3f, %.3f, %.3f)", p.x, p.y, p.z );
+                    sprintf( b, "    pos=(%.3f, %.3f, %.3f)", p.x, p.y, p.z );
                     out << b << "\n";
                 }
             }
