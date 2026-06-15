@@ -32,7 +32,14 @@ void Log( const std::string & msg ) {
 }
 
 void EnsureDirectory( const std::string & path ) {
-    mkdir(path.c_str(), 0777);
+    std::string current = "";
+    for (char c : path) {
+        current += c;
+        if (c == '/') {
+            mkdir(current.c_str(), 0777);
+        }
+    }
+    mkdir(current.c_str(), 0777);
 }
 
 std::string GetAccessModifier( uint32_t flags ) {
