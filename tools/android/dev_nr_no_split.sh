@@ -59,26 +59,13 @@ echo "-- Decoding APK with apktool (skipping dex to save time)"
 apktool d -s -f "$2" -o "$APK_EXTRACT_DIR"
 
 echo "-- Injecting External Storage Permissions into AndroidManifest.xml"
-python3 -c "
-import sys
-manifest_path = '$APK_EXTRACT_DIR/AndroidManifest.xml'
-with open(manifest_path, 'r', encoding='utf-8') as f:
-    content = f.read()
-
-permissions = '''
-    <uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>
-    <uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>
-    <uses-permission android:name=\"android.permission.MANAGE_EXTERNAL_STORAGE\"/>
-'''
-
-if 'android.permission.READ_EXTERNAL_STORAGE' not in content:
-    content = content.replace('<application', permissions + '<application')
-    with open(manifest_path, 'w', encoding='utf-8') as f:
-        f.write(content)
-    print('Permissions injected successfully.')
-else:
-    print('Permissions already exist.')
-"
+MANIFEST_PATH="$APK_EXTRACT_DIR/AndroidManifest.xml"
+if ! grep -q "android.permission.READ_EXTERNAL_STORAGE" "$MANIFEST_PATH"; then
+    sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>\n    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>' "$MANIFEST_PATH"
+    echo "Permissions injected successfully via sed."
+else
+    echo "Permissions already exist."
+fi
 
 if [ -d "$APK_ARM64_LIB_DIR" ]; then
     if [ ! -f "$APK_ARM64_LIB_DIR/libmain_orig.so" ]; then
@@ -105,17 +92,13 @@ apktool b "$APK_EXTRACT_DIR" -o "$TMP_BASE_APK"
 
 echo "-- Signing APK"
 echo "(Password is securep@ssw0rd816-n if you're using UmaPatcher's keystore)"
-\"$APKSIGNER\" sign --ks \"$1\" \"$TMP_BASE_APK\"
+"$APKSIGNER" sign --ks "$1" "$TMP_BASE_APK"
 
 echo "-- Installing"
 adb shell am force-stop "$PACKAGE_NAME"
 adb install -r "$TMP_BASE_APK"
 
 clean
-
-echo "-- Requesting MANAGE_EXTERNAL_STORAGE permission on device"
-# Automatically grant MANAGE_EXTERNAL_STORAGE using appops (works on Android 11+)
-adb shell appops set "$PACKAGE_NAME" MANAGE_EXTERNAL_STORAGE allow || true
 
 echo "-- Launching"
 adb shell am start-activity "$PACKAGE_NAME/$ACTIVITY_NAME"
