@@ -27,8 +27,10 @@ jobs:
           echo -e "\negui = { path = '../egui/crates/egui' }" >> Cargo.toml
           echo "egui_extras = { path = '../egui/crates/egui_extras' }" >> Cargo.toml
 
-      - name: Grant execute permission to build script
-        run: chmod +x tools/android/build.sh
+      - name: Grant execute permission to build scripts
+        run: |
+          chmod +x tools/android/build.sh
+          chmod +x tools/android/build_plugins.sh
       - uses: dtolnay/rust-toolchain@stable
       - name: Build Hachimi for Android
         run: |
@@ -37,11 +39,21 @@ jobs:
         env:
           HACHIMI_IGNORE_DIRTY: "true"
 
+      - name: Setup NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+          local-cache: true
+
+      - name: Build Plugins
+        run: ./tools/android/build_plugins.sh
+
       - name: Attest Android
         uses: actions/attest@v4
         with:
           subject-path: |
             build/*.so
+            build/plugins/*.so
             build/sha256.json
 
       - name: Upload Android binaries
@@ -50,6 +62,7 @@ jobs:
           name: android
           path: |
             build/*.so
+            build/plugins/*.so
             build/sha256.json
           
   build-windows:
