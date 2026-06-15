@@ -61,6 +61,37 @@ inline bool FindNextFileA(HANDLE hFindFile, WIN32_FIND_DATAA* lpFindFileData) {
 inline void FindClose(HANDLE hFindFile) {}
 inline bool DeleteFileA(const char* lpFileName) { return unlink(lpFileName) == 0; }
 
+#define CP_UTF8 65001
+
+template<typename T>
+inline int WideCharToMultiByte(
+    unsigned int CodePage,
+    DWORD    dwFlags,
+    const T* lpWideCharStr,
+    int      cchWideChar,
+    char*    lpMultiByteStr,
+    int      cbMultiByte,
+    const char* lpDefaultChar,
+    bool* lpUsedDefaultChar
+) {
+    if (cbMultiByte == 0) return cchWideChar * 3;
+    int outIdx = 0;
+    for (int i = 0; i < cchWideChar; ++i) {
+        uint16_t c = (uint16_t)lpWideCharStr[i];
+        if (c < 0x80) {
+            if (outIdx < cbMultiByte) lpMultiByteStr[outIdx++] = (char)c;
+        } else if (c < 0x800) {
+            if (outIdx < cbMultiByte) lpMultiByteStr[outIdx++] = (char)(0xC0 | (c >> 6));
+            if (outIdx < cbMultiByte) lpMultiByteStr[outIdx++] = (char)(0x80 | (c & 0x3F));
+        } else {
+            if (outIdx < cbMultiByte) lpMultiByteStr[outIdx++] = (char)(0xE0 | (c >> 12));
+            if (outIdx < cbMultiByte) lpMultiByteStr[outIdx++] = (char)(0x80 | ((c >> 6) & 0x3F));
+            if (outIdx < cbMultiByte) lpMultiByteStr[outIdx++] = (char)(0x80 | (c & 0x3F));
+        }
+    }
+    return outIdx;
+}
+
 #define Sleep(ms) usleep((ms) * 1000)
 
 template<typename... Args>

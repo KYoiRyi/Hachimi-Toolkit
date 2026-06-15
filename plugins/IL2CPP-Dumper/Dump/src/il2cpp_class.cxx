@@ -2,7 +2,6 @@
 #include "../include/il2cpp_api.hxx"
 #include "../include/utils.hxx"
 #include <algorithm>
-#include <excpt.h>
 
 static std::vector<std::string> ParseAttrCache( void * cache ) {
     std::vector<std::string> result;
