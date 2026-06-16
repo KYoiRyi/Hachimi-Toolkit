@@ -203,6 +203,12 @@ void OnGameInitialized() {
     }
 }
 
+void* HookThread(void*) {
+    usleep(8000000);
+    OnGameInitialized();
+    return nullptr;
+}
+
 extern "C" bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
     g_log = (hachimi_log_t)get_api("log");
     g_hachimi_instance = (hachimi_instance_t)get_api("hachimi_instance");
@@ -223,11 +229,9 @@ extern "C" bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
     
     Log("Packet-Capture Plugin Initialized! Output Dir: " + g_outputDir);
     
-    if (register_init) {
-        register_init(OnGameInitialized);
-    } else {
-        Log("Failed to get hachimi_register_on_game_initialized");
-    }
+    pthread_t t;
+    pthread_create(&t, nullptr, HookThread, nullptr);
+    pthread_detach(t);
     
     return true;
 }
