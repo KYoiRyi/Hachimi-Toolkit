@@ -101,8 +101,27 @@ void LoadConfig() {
 }
 
 // Trampolines
+typedef void* (*compress_req_t)(void* body, void* method_info);
+typedef void* (*decompress_resp_t)(void* response, void* method_info);
 typedef void* (*post_t)(void* this_ptr, void* url, void* postData, void* headers, void* method_info);
+
+static compress_req_t o_CompressRequest = nullptr;
+static decompress_resp_t o_DecompressResponse = nullptr;
 static post_t o_Post = nullptr;
+
+static void* h_CompressRequest(void* body, void* method_info) {
+    if (g_proxy_enabled) {
+        return body; // Bypass compression, return plaintext MsgPack
+    }
+    return o_CompressRequest(body, method_info);
+}
+
+static void* h_DecompressResponse(void* response, void* method_info) {
+    if (g_proxy_enabled) {
+        return response; // Bypass decompression, response is already plaintext MsgPack
+    }
+    return o_DecompressResponse(response, method_info);
+}
 
 typedef int (*curl_setopt_t)(void* curl, int option, void* param);
 static curl_setopt_t o_curl_setopt = nullptr;
@@ -167,6 +186,26 @@ void OnGameInitialized() {
         Log("Failed to resolve string manipulation functions from libil2cpp.so");
     }
     
+    // 1. Hook Compress/Decompress
+    void* image_uma = g_get_assembly_image("umamusume.dll");
+    if (image_uma) {
+        void* klass_http = g_get_class(image_uma, "Gallop", "HttpHelper");
+        if (klass_http) {
+            void* a_compress = g_get_method_addr(klass_http, "CompressRequest", 1);
+            void* a_decompress = g_get_method_addr(klass_http, "DecompressResponse", 1);
+            
+            if (a_compress && a_decompress) {
+                void* hachimi = g_hachimi_instance();
+                void* interceptor = g_hachimi_get_interceptor(hachimi);
+                o_CompressRequest = (compress_req_t)g_interceptor_hook(interceptor, a_compress, (void*)h_CompressRequest);
+                o_DecompressResponse = (decompress_resp_t)g_interceptor_hook(interceptor, a_decompress, (void*)h_DecompressResponse);
+                Log("Gallop.HttpHelper hooks installed.");
+            } else {
+                Log("Failed to find CompressRequest or DecompressResponse addresses.");
+            }
+        }
+    }
+    
     // 2. Hook Cute.Http.WWWRequest.Post
     void* image_cute = g_get_assembly_image("Cute.Http.Assembly.dll");
     if (image_cute) {
@@ -205,7 +244,13 @@ void OnGameInitialized() {
 }
 
 void* HookThread(void*) {
-    usleep(8000000); // 8 seconds brute force wait
+    while (true) {
+        if (g_get_assembly_image) {
+            void* image_uma = g_get_assembly_image("umamusume.dll");
+            if (image_uma) break;
+        }
+        usleep(100000); // 100ms wait
+    }
     OnGameInitialized();
     return nullptr;
 }
