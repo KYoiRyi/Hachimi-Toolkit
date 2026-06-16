@@ -48,8 +48,6 @@ static std::string g_outputDir;
 // Configs
 static bool g_proxy_enabled = false;
 static std::string g_proxy_url = "http://127.0.0.1:5090";
-static std::string g_target_host = "https://api.games.umamusume.com";
-
 void Log(const std::string& msg) {
     if (!g_outputDir.empty()) {
         std::string logPath = g_outputDir + "/proxy.log";
@@ -85,7 +83,6 @@ void LoadConfig() {
             ifs >> j;
             g_proxy_enabled = j.value("proxy_enabled", false);
             g_proxy_url = j.value("proxy_url", "http://127.0.0.1:5090");
-            g_target_host = j.value("target_host", "https://api.games.umamusume.com");
             Log("Config loaded. Proxy Enabled: " + std::to_string(g_proxy_enabled) + ", Target: " + g_proxy_url);
         } catch (const std::exception& e) {
             Log("Failed to parse config: " + std::string(e.what()));
@@ -94,7 +91,6 @@ void LoadConfig() {
         json j;
         j["proxy_enabled"] = false;
         j["proxy_url"] = "http://127.0.0.1:5090";
-        j["target_host"] = "https://api.games.umamusume.com";
         std::ofstream ofs(configPath);
         if (ofs.is_open()) {
             ofs << j.dump(4);
@@ -175,21 +171,21 @@ void OnGameInitialized() {
         }
     }
     
-    // 2. Hook AppDefine.get_ApplicationServerUrl
+    // 2. Hook GameDefine.get_ApplicationServerUrl
     if (image_uma) {
-        void* klass_appdef = g_get_class(image_uma, "Gallop", "AppDefine");
-        if (klass_appdef) {
-            void* a_get_url = g_get_method_addr(klass_appdef, "get_ApplicationServerUrl", 0);
+        void* klass_gamedef = g_get_class(image_uma, "Gallop", "GameDefine");
+        if (klass_gamedef) {
+            void* a_get_url = g_get_method_addr(klass_gamedef, "get_ApplicationServerUrl", 0);
             if (a_get_url) {
                 void* hachimi = g_hachimi_instance();
                 void* interceptor = g_hachimi_get_interceptor(hachimi);
                 o_GetApplicationServerUrl = (get_url_t)g_interceptor_hook(interceptor, a_get_url, (void*)h_GetApplicationServerUrl);
-                Log("Gallop.AppDefine.get_ApplicationServerUrl hook installed.");
+                Log("Gallop.GameDefine.get_ApplicationServerUrl hook installed.");
             } else {
                 Log("Failed to find get_ApplicationServerUrl address.");
             }
         } else {
-            Log("Failed to find Gallop.AppDefine.");
+            Log("Failed to find Gallop.GameDefine.");
         }
     }
 }
