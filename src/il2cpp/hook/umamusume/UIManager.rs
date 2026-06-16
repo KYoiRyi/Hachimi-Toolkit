@@ -57,7 +57,6 @@ pub fn apply_ui_scale() {
 
 type SetHeaderTitleTextFn = extern "C" fn(this: *mut Il2CppObject, text: *mut Il2CppString, guide_id: i32);
 extern "C" fn SetHeaderTitleText(this: *mut Il2CppObject, text_: *mut Il2CppString, guide_id: i32) {
-    info!("HOOK_TRACE: Executing SetHeaderTitleText in UIManager.rs");
     let text = unsafe { (*text_).as_utf16str() };
 
     // The title text (aka the purple ribbon on the top left of the screen) doesn't run
@@ -78,7 +77,6 @@ extern "C" fn SetHeaderTitleText(this: *mut Il2CppObject, text_: *mut Il2CppStri
 type ChangeResizeUIForPCFn = extern "C" fn(this: *mut Il2CppObject, width: i32, height: i32);
 #[cfg(target_os = "windows")]
 extern "C" fn ChangeResizeUIForPC(this: *mut Il2CppObject, width: i32, height: i32) {
-    info!("HOOK_TRACE: Executing ChangeResizeUIForPC in UIManager.rs");
     use super::GraphicSettings;
 
     get_orig_fn!(ChangeResizeUIForPC, ChangeResizeUIForPCFn)(this, width, height);
@@ -92,7 +90,6 @@ extern "C" fn ChangeResizeUIForPC(this: *mut Il2CppObject, width: i32, height: i
 
 #[cfg(target_os = "android")]
 extern "C" fn WaitBootSetup_MoveNext(enumerator: *mut Il2CppObject) -> bool {
-    info!("HOOK_TRACE: Executing WaitBootSetup_MoveNext in UIManager.rs");
     use crate::il2cpp::symbols::MoveNextFn;
     let moved = get_orig_fn!(WaitBootSetup_MoveNext, MoveNextFn)(enumerator);
     if !moved {
@@ -105,7 +102,6 @@ extern "C" fn WaitBootSetup_MoveNext(enumerator: *mut Il2CppObject) -> bool {
 type WaitBootSetupFn = extern "C" fn(this: *mut Il2CppObject) -> crate::il2cpp::symbols::IEnumerator;
 #[cfg(target_os = "android")]
 extern "C" fn WaitBootSetup(this: *mut Il2CppObject) -> crate::il2cpp::symbols::IEnumerator {
-    info!("HOOK_TRACE: Executing WaitBootSetup in UIManager.rs");
     let enumerator = get_orig_fn!(WaitBootSetup, WaitBootSetupFn)(this);
     if Hachimi::instance().config.load().ui_scale == 1.0 { return enumerator; }
 

@@ -114,7 +114,6 @@ fn customize(component: *mut Il2CppObject) {
 
 type Internal_AddComponentWithTypeFn = extern "C" fn(this: *mut Il2CppObject, componentType: *mut Il2CppType) -> *mut Il2CppObject;
 extern "C" fn Internal_AddComponentWithType(this: *mut Il2CppObject, componentType: *mut Il2CppType) -> *mut Il2CppObject {
-    info!("HOOK_TRACE: Executing Internal_AddComponentWithType in GameObject.rs");
     let component = get_orig_fn!(Internal_AddComponentWithType, Internal_AddComponentWithTypeFn)(this, componentType);
     if !component.is_null() {
         customize(component);
@@ -130,7 +129,6 @@ struct FastPath {
 
 type TryGetComponentFastPathFn = extern "C" fn(this: *mut Il2CppObject, type_: *mut Il2CppType, oneFurtherThanResultValue: usize);
 extern "C" fn TryGetComponentFastPath(this: *mut Il2CppObject, type_: *mut Il2CppType, oneFurtherThanResultValue: usize) {
-    info!("HOOK_TRACE: Executing TryGetComponentFastPath in GameObject.rs");
     get_orig_fn!(TryGetComponentFastPath, TryGetComponentFastPathFn)(this, type_, oneFurtherThanResultValue);
     let fastPath = (oneFurtherThanResultValue - std::mem::size_of::<*mut Il2CppObject>()) as *mut FastPath;
     let component = unsafe { (*fastPath).component };

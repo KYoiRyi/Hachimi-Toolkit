@@ -32,7 +32,6 @@ impl_addr_wrapper_fn!(SetTextFontSize, SET_TEXT_FONTSIZE_ADDR, (), this: *mut Il
 
 type SetTextFn = extern "C" fn(this: *mut Il2CppObject, text: *mut Il2CppString);
 extern "C" fn SetText(this: *mut Il2CppObject, mut text: *mut Il2CppString) {
-    info!("HOOK_TRACE: Executing SetText in AnText.rs");
     let text_utf = unsafe { (*text).as_utf16str() };
     if !text_utf.as_slice().contains(&36) { // 36 = dollar sign ($)
         return get_orig_fn!(SetText, SetTextFn)(this, text);

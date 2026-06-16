@@ -21,7 +21,6 @@ pub fn instance() -> *mut Il2CppObject {
 
 type GetVirtualResolutionFn = extern "C" fn(this: *mut Il2CppObject) -> Vector2Int_t;
 extern "C" fn GetVirtualResolution(this: *mut Il2CppObject) -> Vector2Int_t {
-    info!("HOOK_TRACE: Executing GetVirtualResolution in GraphicSettings.rs");
     let mut res = get_orig_fn!(GetVirtualResolution, GetVirtualResolutionFn)(this);
     let mult = Hachimi::instance().config.load().virtual_res_mult;
     if mult != 1.0 {
@@ -32,7 +31,6 @@ extern "C" fn GetVirtualResolution(this: *mut Il2CppObject) -> Vector2Int_t {
 
 type GetVirtualResolution3DFn = extern "C" fn(this: *mut Il2CppObject, is_forced_wide_aspect: bool) -> Vector2Int_t;
 extern "C" fn GetVirtualResolution3D(this: *mut Il2CppObject, is_forced_wide_aspect: bool) -> Vector2Int_t {
-    info!("HOOK_TRACE: Executing GetVirtualResolution3D in GraphicSettings.rs");
     let mut res = get_orig_fn!(GetVirtualResolution3D, GetVirtualResolution3DFn)(this, is_forced_wide_aspect);
     let mult = Hachimi::instance().config.load().virtual_res_mult;
     if mult != 1.0 &&
@@ -46,7 +44,6 @@ extern "C" fn GetVirtualResolution3D(this: *mut Il2CppObject, is_forced_wide_asp
 
 type GetVirtualResolutionWidth3DFn = extern "C" fn(this: *mut Il2CppObject) -> i32;
 extern "C" fn GetVirtualResolutionWidth3D(this: *mut Il2CppObject) -> i32 {
-    info!("HOOK_TRACE: Executing GetVirtualResolutionWidth3D in GraphicSettings.rs");
     let mut width = get_orig_fn!(GetVirtualResolutionWidth3D, GetVirtualResolutionWidth3DFn)(this);
     let mult = Hachimi::instance().config.load().virtual_res_mult;
     if mult != 1.0 {
@@ -83,7 +80,6 @@ pub enum MsaaQuality {
 
 type get_IsMSAAFn = extern "C" fn(this: *mut Il2CppObject) -> bool;
 pub extern "C" fn get_IsMSAA(this: *mut Il2CppObject) -> bool {
-    info!("HOOK_TRACE: Executing get_IsMSAA in GraphicSettings.rs");
     if Hachimi::instance().config.load().msaa != MsaaQuality::Disabled {
         return true;
     }
@@ -92,7 +88,6 @@ pub extern "C" fn get_IsMSAA(this: *mut Il2CppObject) -> bool {
 
 type set_ResolutionScaleFn = extern "C" fn(this: *mut Il2CppObject, value: f32);
 extern "C" fn set_ResolutionScale(this: *mut Il2CppObject, value: f32) {
-    info!("HOOK_TRACE: Executing set_ResolutionScale in GraphicSettings.rs");
     let render_scale = Hachimi::instance().config.load().render_scale;
     let target_value = if render_scale != 1.0 { render_scale } else { value };
     get_orig_fn!(set_ResolutionScale, set_ResolutionScaleFn)(this, target_value);
@@ -100,7 +95,6 @@ extern "C" fn set_ResolutionScale(this: *mut Il2CppObject, value: f32) {
 
 type set_ResolutionScale2DFn = extern "C" fn(this: *mut Il2CppObject, value: f32);
 pub extern "C" fn set_ResolutionScale2D(this: *mut Il2CppObject, value: f32) {
-    info!("HOOK_TRACE: Executing set_ResolutionScale2D in GraphicSettings.rs");
     let render_scale = Hachimi::instance().config.load().render_scale;
     let target_value = if render_scale != 1.0 { render_scale } else { value };
     get_orig_fn!(set_ResolutionScale2D, set_ResolutionScale2DFn)(this, target_value);
@@ -108,7 +102,6 @@ pub extern "C" fn set_ResolutionScale2D(this: *mut Il2CppObject, value: f32) {
 
 type Get3DAntiAliasingLevelFn = extern "C" fn(this: *mut Il2CppObject, allowMSAA: bool) -> i32;
 extern "C" fn Get3DAntiAliasingLevel(this: *mut Il2CppObject, allowMSAA: bool) -> i32 {
-    info!("HOOK_TRACE: Executing Get3DAntiAliasingLevel in GraphicSettings.rs");
     let msaa = Hachimi::instance().config.load().msaa;
     if allowMSAA && msaa != MsaaQuality::Disabled {
         return msaa as i32;
@@ -118,7 +111,6 @@ extern "C" fn Get3DAntiAliasingLevel(this: *mut Il2CppObject, allowMSAA: bool) -
 
 type ApplyGraphicsQualityFn = extern "C" fn(this: *mut Il2CppObject, quality: GraphicsQuality, force: bool);
 extern "C" fn ApplyGraphicsQuality(this: *mut Il2CppObject, quality: GraphicsQuality, force: bool) {
-    info!("HOOK_TRACE: Executing ApplyGraphicsQuality in GraphicSettings.rs");
     let custom_quality = Hachimi::instance().config.load().graphics_quality;
     if custom_quality != GraphicsQuality::Default {
         return get_orig_fn!(ApplyGraphicsQuality, ApplyGraphicsQualityFn)(this, custom_quality, true);

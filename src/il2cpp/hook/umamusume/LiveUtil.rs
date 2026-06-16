@@ -5,7 +5,6 @@ use crate::{
 
 type GetSingCharaIdListFn = extern "C" fn(songId: i32, songPartNumber: i32, allCharaIdArray: *mut Il2CppArray, vocalCharaIdArray: *mut Il2CppArray, shuffledCharaDataList: *mut Il2CppObject) -> *mut Il2CppObject;
 extern "C" fn GetSingCharaIdList(songId: i32, songPartNumber: i32, allCharaIdArray: *mut Il2CppArray, vocalCharaIdArray: *mut Il2CppArray, shuffledCharaDataList: *mut Il2CppObject) -> *mut Il2CppObject {
-    info!("HOOK_TRACE: Executing GetSingCharaIdList in LiveUtil.rs");
     let chara_vo_ids = &Hachimi::instance().config.load().live_vocals_swap;
 
     if songId > 0 {

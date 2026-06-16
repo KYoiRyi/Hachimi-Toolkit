@@ -27,7 +27,6 @@ extern "C" fn Setup(
     imageCommon: *mut *mut Il2CppObject,
     canvasGroup: *mut *mut Il2CppObject,
 ) {
-    info!("HOOK_TRACE: Executing Setup in StoryChoiceButton.rs");
     // Called at the start of a story for each of the 6 possible buttons.
     get_orig_fn!(Setup, SetupFn)(this, labelObject, textLabel, imageObjectName, anObject, anText, imageCommon, canvasGroup);
 

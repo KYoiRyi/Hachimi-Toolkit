@@ -43,7 +43,6 @@ pub fn quick_open(dialog_title: &str, url: &str) {
 
 type GetUrlFn = extern "C" fn(this: *mut Il2CppObject, url_type: i32) -> *mut Il2CppString;
 extern "C" fn GetUrl(this: *mut Il2CppObject, url_type: i32) -> *mut Il2CppString {
-    info!("HOOK_TRACE: Executing GetUrl in WebViewManager.rs");
     if url_type == WebViewDefine::Url_Update {
         if let Some(news_url) = &Hachimi::instance().localized_data.load().config.news_url {
             return news_url.to_il2cpp_string();

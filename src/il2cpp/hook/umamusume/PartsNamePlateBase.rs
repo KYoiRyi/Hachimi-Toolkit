@@ -9,7 +9,6 @@ def_field_object_accessors!(get get_charaNameText, CHARA_NAME_TEXT_FIELD, Il2Cpp
 
 type PlayFadeInFn = extern "C" fn(this: *mut Il2CppObject, onComplete: *mut Il2CppDelegate);
 extern "C" fn PlayFadeIn(this: *mut Il2CppObject, onComplete: *mut Il2CppDelegate) {
-    info!("HOOK_TRACE: Executing PlayFadeIn in PartsNamePlateBase.rs");
     let subtitle = get_charaSubTitleText(this);
     let name = get_charaNameText(this);
     if !subtitle.is_null() {

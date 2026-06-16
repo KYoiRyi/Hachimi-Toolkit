@@ -5,7 +5,6 @@ use crate::core::Hachimi;
 
 #[cfg(target_os = "android")]
 extern "C" fn ChangeScreenOrientationLandscapeAsync_MoveNext(enumerator: *mut Il2CppObject) -> bool {
-    info!("HOOK_TRACE: Executing ChangeScreenOrientationLandscapeAsync_MoveNext in Screen.rs");
     use crate::il2cpp::symbols::MoveNextFn;
     let moved = get_orig_fn!(ChangeScreenOrientationLandscapeAsync_MoveNext, MoveNextFn)(enumerator);
     if !moved {
@@ -16,7 +15,6 @@ extern "C" fn ChangeScreenOrientationLandscapeAsync_MoveNext(enumerator: *mut Il
 
 #[cfg(target_os = "android")]
 extern "C" fn ChangeScreenOrientationPortraitAsync_MoveNext(enumerator: *mut Il2CppObject) -> bool {
-    info!("HOOK_TRACE: Executing ChangeScreenOrientationPortraitAsync_MoveNext in Screen.rs");
     use crate::il2cpp::symbols::MoveNextFn;
     let moved = get_orig_fn!(ChangeScreenOrientationPortraitAsync_MoveNext, MoveNextFn)(enumerator);
     if !moved {
@@ -29,7 +27,6 @@ extern "C" fn ChangeScreenOrientationPortraitAsync_MoveNext(enumerator: *mut Il2
 type ChangeScreenOrientationLandscapeAsyncFn = extern "C" fn() -> crate::il2cpp::symbols::IEnumerator;
 #[cfg(target_os = "android")]
 extern "C" fn ChangeScreenOrientationLandscapeAsync() -> crate::il2cpp::symbols::IEnumerator {
-    info!("HOOK_TRACE: Executing ChangeScreenOrientationLandscapeAsync in Screen.rs");
     let enumerator = get_orig_fn!(ChangeScreenOrientationLandscapeAsync, ChangeScreenOrientationLandscapeAsyncFn)();
     if Hachimi::instance().config.load().ui_scale == 1.0 { return enumerator; }
 
@@ -44,7 +41,6 @@ extern "C" fn ChangeScreenOrientationLandscapeAsync() -> crate::il2cpp::symbols:
 type ChangeScreenOrientationPortraitAsyncFn = extern "C" fn() -> crate::il2cpp::symbols::IEnumerator;
 #[cfg(target_os = "android")]
 extern "C" fn ChangeScreenOrientationPortraitAsync() -> crate::il2cpp::symbols::IEnumerator {
-    info!("HOOK_TRACE: Executing ChangeScreenOrientationPortraitAsync in Screen.rs");
     let enumerator = get_orig_fn!(ChangeScreenOrientationPortraitAsync, ChangeScreenOrientationPortraitAsyncFn)();
     if Hachimi::instance().config.load().ui_scale == 1.0 { return enumerator; }
 
@@ -59,7 +55,6 @@ extern "C" fn ChangeScreenOrientationPortraitAsync() -> crate::il2cpp::symbols::
 type GetWidthFn = extern "C" fn() -> i32;
 #[cfg(target_os = "windows")]
 extern "C" fn get_Width() -> i32 {
-    info!("HOOK_TRACE: Executing get_Width in Screen.rs");
     if let Some((width, _)) = crate::windows::utils::get_scaling_res() {
         return width;
     }
@@ -76,7 +71,6 @@ pub fn get_Width_orig() -> i32 {
 type GetHeightFn = extern "C" fn() -> i32;
 #[cfg(target_os = "windows")]
 extern "C" fn get_Height() -> i32 {
-    info!("HOOK_TRACE: Executing get_Height in Screen.rs");
     if let Some((_, height)) = crate::windows::utils::get_scaling_res() {
         return height;
     }

@@ -100,7 +100,6 @@ fn parse_query(query: *mut Il2CppObject, sql: *const Il2CppString) {
 
 type QueryFn = extern "C" fn(this: *mut Il2CppObject, sql: *const Il2CppString) -> *mut Il2CppObject;
 pub extern "C" fn Query(this: *mut Il2CppObject, sql: *const Il2CppString) -> *mut Il2CppObject {
-    info!("HOOK_TRACE: Executing Query in Connection.rs");
     trace!("Query");
     let query = get_orig_fn!(Query, QueryFn)(this, sql);
     parse_query(query, sql);
@@ -109,7 +108,6 @@ pub extern "C" fn Query(this: *mut Il2CppObject, sql: *const Il2CppString) -> *m
 
 type PreparedQueryFn = extern "C" fn(this: *mut Il2CppObject, sql: *const Il2CppString) -> *mut Il2CppObject;
 extern "C" fn PreparedQuery(this: *mut Il2CppObject, sql: *const Il2CppString) -> *mut Il2CppObject {
-    info!("HOOK_TRACE: Executing PreparedQuery in Connection.rs");
     trace!("PreparedQuery");
     let query = get_orig_fn!(PreparedQuery, PreparedQueryFn)(this, sql);
     parse_query(query, sql);

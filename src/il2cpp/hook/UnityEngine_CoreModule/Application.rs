@@ -4,7 +4,6 @@ use crate::{core::Hachimi, il2cpp::{api::il2cpp_resolve_icall, symbols::get_meth
 
 type SetTargetFrameRateFn = extern "C" fn(value: i32);
 pub extern "C" fn set_targetFrameRate(mut value: i32) {
-    info!("HOOK_TRACE: Executing set_targetFrameRate in Application.rs");
     let target_fps = Hachimi::instance().target_fps.load(atomic::Ordering::Relaxed);
     if target_fps != -1 {
         value = target_fps;

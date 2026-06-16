@@ -2,7 +2,6 @@ use crate::{core::Hachimi, il2cpp::{symbols::get_method_addr, types::*}};
 
 type UpdateFn = extern "C" fn(update_type: i32, delta_time: f32, independent_time: f32);
 extern "C" fn Update(update_type: i32, mut delta_time: f32, mut independent_time: f32) {
-    info!("HOOK_TRACE: Executing Update in TweenManager.rs");
     let scale = Hachimi::instance().config.load().ui_animation_scale;
     if scale != 1.0 {
         delta_time *= scale;

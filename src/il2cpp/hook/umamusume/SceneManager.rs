@@ -23,7 +23,6 @@ extern "C" fn ChangeViewJp(
     callback_on_change_view_cancel: *mut Il2CppObject, callback_on_change_view_accept: *mut Il2CppObject,
     force_change: bool, is_fast_destroy: bool, fade_in_duration: f32
 ) {
-    info!("HOOK_TRACE: Executing ChangeViewJp in SceneManager.rs");
     get_orig_fn!(ChangeViewJp, ChangeViewJpfn)(
         this, next_view_id, view_info, callback_on_change_view_cancel,
         callback_on_change_view_accept, force_change, is_fast_destroy,
@@ -42,7 +41,6 @@ extern "C" fn ChangeViewOther(
     callback_on_change_view_cancel: *mut Il2CppObject, callback_on_change_view_accept: *mut Il2CppObject,
     force_change: bool
 ) {
-    info!("HOOK_TRACE: Executing ChangeViewOther in SceneManager.rs");
     get_orig_fn!(ChangeViewOther, ChangeViewOtherfn)(
         this, next_view_id, view_info, callback_on_change_view_cancel,
         callback_on_change_view_accept, force_change

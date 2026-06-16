@@ -4,7 +4,6 @@ use super::{Localize, MasterSingleModeTurn::SingleModeTurn, TextId};
 
 type GetMonthTextByTurnFn = extern "C" fn(turn_set_id: i32, turn: i32) -> *mut Il2CppString;
 extern "C" fn GetMonthTextByTurn(turn_set_id: i32, turn: i32) -> *mut Il2CppString {
-    info!("HOOK_TRACE: Executing GetMonthTextByTurn in SingleModeUtils.rs");
     if let Some(format) = &Hachimi::instance().localized_data.load().config.month_text_format {
         struct Context {
             turn: *mut Il2CppObject

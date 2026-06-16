@@ -22,7 +22,6 @@ static mut TEXTID_NAME_CACHE: LazyCell<FnvHashMap<i32, String>> = LazyCell::new(
  */
 type GetFn = extern "C" fn(id: i32) -> *mut Il2CppString;
 pub extern "C" fn Get(id: i32) -> *mut Il2CppString {
-    info!("HOOK_TRACE: Executing Get in Localize.rs");
     let hachimi = Hachimi::instance();
     let localized_data = hachimi.localized_data.load();
     if localized_data.localize_dict.is_empty() {
