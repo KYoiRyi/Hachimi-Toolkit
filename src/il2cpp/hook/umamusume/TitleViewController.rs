@@ -5,6 +5,7 @@ impl_addr_wrapper_fn!(get_boot_progress, GET_BOOT_PROGRESS_ADDR, f32, );
 
 type UpdateViewFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn UpdateView(this: *mut Il2CppObject) {
+    info!("HOOK_TRACE: Executing UpdateView in TitleViewController.rs");
     get_orig_fn!(UpdateView, UpdateViewFn)(this);
     unsafe {
         if GET_BOOT_PROGRESS_ADDR != 0 {

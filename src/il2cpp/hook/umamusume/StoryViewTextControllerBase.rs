@@ -11,6 +11,7 @@ const LANDSCAPE_SIZE: Size = (730.0, 45.0);
 
 type SetNameLabelFn = extern "C" fn(this: *mut Il2CppObject, name: *mut Il2CppString);
 extern "C" fn SetNameLabel(this: *mut Il2CppObject, name: *mut Il2CppString) {
+    info!("HOOK_TRACE: Executing SetNameLabel in StoryViewTextControllerBase.rs");
     let cls = unsafe { (*this).klass() };
     let text_frame: *mut Il2CppObject;
     let size: &Size;

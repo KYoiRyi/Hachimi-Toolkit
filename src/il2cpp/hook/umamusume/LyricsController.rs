@@ -59,6 +59,7 @@ impl LyricsDataCommon for LyricsDataGlobal {
 
 type LoadLyricsFn = extern "C" fn(this: *mut Il2CppObject, id: i32, path: *mut Il2CppString) -> bool;
 extern "C" fn LoadLyrics(this: *mut Il2CppObject, id: i32, path: *mut Il2CppString) -> bool {
+    info!("HOOK_TRACE: Executing LoadLyrics in LyricsController.rs");
     if !get_orig_fn!(LoadLyrics, LoadLyricsFn)(this, id, path) {
         return false;
     }

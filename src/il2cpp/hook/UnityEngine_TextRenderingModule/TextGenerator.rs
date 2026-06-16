@@ -10,6 +10,7 @@ extern "C" fn PopulateWithErrors(
     this: *mut Il2CppObject, str_: *mut Il2CppString,
     mut settings: TextGenerationSettings_t, context: *mut Il2CppObject
 ) -> bool {
+    info!("HOOK_TRACE: Executing PopulateWithErrors in TextGenerator.rs");
     let orig_fn = get_orig_fn!(PopulateWithErrors, PopulateWithErrorsFn);
     let localized_data = &Hachimi::instance().localized_data.load();
     let hashed_dict = &localized_data.hashed_dict;

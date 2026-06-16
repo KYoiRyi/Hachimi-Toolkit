@@ -8,6 +8,7 @@ use super::{ButtonCommon, CharacterNoteTopView, TextCommon, ViewControllerBase};
 
 type InitializeViewFn = extern "C" fn(this: *mut Il2CppObject) -> *mut Il2CppObject;
 extern "C" fn InitializeView(this: *mut Il2CppObject) -> *mut Il2CppObject {
+    info!("HOOK_TRACE: Executing InitializeView in CharacterNoteTopViewController.rs");
     let view = ViewControllerBase::GetView(this);
     let config = &Hachimi::instance().localized_data.load().config;
 

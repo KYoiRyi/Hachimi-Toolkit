@@ -5,6 +5,7 @@ impl_addr_wrapper_fn!(ChangeLive_onSuccess, CHANGELIVE_ONSUCCESS_ADDR, (), this:
 
 type ChangeLiveFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn ChangeLive(this: *mut Il2CppObject) {
+    info!("HOOK_TRACE: Executing ChangeLive in LiveTheaterViewController.rs");
     if Hachimi::instance().config.load().live_theater_allow_same_chara {
         if unsafe { CHANGELIVE_ONSUCCESS_ADDR } == 0 {
             return notify_error("BUG: Please turn off 'Live theater allow same chara' \

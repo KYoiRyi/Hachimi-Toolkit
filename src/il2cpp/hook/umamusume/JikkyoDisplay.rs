@@ -13,6 +13,7 @@ extern "C" fn Play(
     this: *mut Il2CppObject, mut jikkyou_text: *mut Il2CppString, jikkyou_voice_cmd: *mut Il2CppString,
     type_: i32, tension: i32, on_end: *mut Il2CppObject, is_cross_time_enable: bool
 ) {
+    info!("HOOK_TRACE: Executing Play in JikkyoDisplay.rs");
     let text = unsafe { (*jikkyou_text).as_utf16str() };
 
     if text.as_slice().contains(&36) { // 36 = dollar sign ($)

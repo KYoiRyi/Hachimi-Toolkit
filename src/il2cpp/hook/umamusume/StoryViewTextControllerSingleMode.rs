@@ -16,6 +16,7 @@ pub fn get__textFrame(this: *mut Il2CppObject) -> *mut Il2CppObject {
 
 type SetFontSizeFn = extern "C" fn(this: *mut Il2CppObject, font_size: i32);
 extern "C" fn SetFontSize(this: *mut Il2CppObject, font_size: i32) {
+    info!("HOOK_TRACE: Executing SetFontSize in StoryViewTextControllerSingleMode.rs");
     get_orig_fn!(SetFontSize, SetFontSizeFn)(this, font_size);
 
     if let Some(mult) = Hachimi::instance().localized_data.load().config.text_frame_font_size_multiplier {

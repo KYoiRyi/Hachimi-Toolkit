@@ -11,6 +11,7 @@ extern "C" fn UpdateForce(
     gravity_rate: f32, wind_power: Vector3_t, wind_strength: f32,
     position_diff: Vector3_t, mut frame_scale: f32
 ) {
+    info!("HOOK_TRACE: Executing UpdateForce in CySpringNative.rs");
     let config = Hachimi::instance().config.load();
     if config.physics_update_mode == Some(super::CySpringController::SpringUpdateMode::Mode60FPS) {
         let target_fps = config.target_fps.unwrap_or(60) as f32;

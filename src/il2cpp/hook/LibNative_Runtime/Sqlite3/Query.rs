@@ -4,6 +4,7 @@ use super::Connection::SELECT_QUERIES;
 
 type GetTextFn = extern "C" fn(this: *mut Il2CppObject, idx: i32) -> *mut Il2CppString;
 pub extern "C" fn GetText(this: *mut Il2CppObject, idx: i32) -> *mut Il2CppString {
+    info!("HOOK_TRACE: Executing GetText in Query.rs");
     if let Some(query) = SELECT_QUERIES.lock().unwrap().get(&(this as usize)) {
         return query.get_text(this, idx).unwrap_or_else(|| get_orig_fn!(GetText, GetTextFn)(this, idx));
     }
@@ -12,6 +13,7 @@ pub extern "C" fn GetText(this: *mut Il2CppObject, idx: i32) -> *mut Il2CppStrin
 
 type DisposeFn = extern "C" fn(this: *mut Il2CppObject);
 pub extern "C" fn Dispose(this: *mut Il2CppObject) {
+    info!("HOOK_TRACE: Executing Dispose in Query.rs");
     SELECT_QUERIES.lock().unwrap().remove(&(this as usize));
     get_orig_fn!(Dispose, DisposeFn)(this);
 }

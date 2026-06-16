@@ -8,6 +8,7 @@ impl_addr_wrapper_fn!(get_currentSelectedGameObject, GET_CURRENTSELECTEDGAMEOBJE
 
 type UpdateFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn Update(this: *mut Il2CppObject) {
+    info!("HOOK_TRACE: Executing Update in EventSystem.rs");
     get_orig_fn!(Update, UpdateFn)(this);
 
     let mut completed = Vec::new();

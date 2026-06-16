@@ -18,6 +18,7 @@ fn with_creating_render_texture(callback: impl FnOnce()) {
 
 type InitializeFn = extern "C" fn(this: *mut Il2CppObject, bg_path: *mut Il2CppObject);
 extern "C" fn Initialize(this: *mut Il2CppObject, view: *mut Il2CppObject) {
+    info!("HOOK_TRACE: Executing Initialize in LowResolutionCamera.rs");
     with_creating_render_texture(|| {
         get_orig_fn!(Initialize, InitializeFn)(this, view);
     });
@@ -25,6 +26,7 @@ extern "C" fn Initialize(this: *mut Il2CppObject, view: *mut Il2CppObject) {
 
 type RemakeRendererTextureFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn RemakeRendererTexture(this: *mut Il2CppObject) {
+    info!("HOOK_TRACE: Executing RemakeRendererTexture in LowResolutionCamera.rs");
     with_creating_render_texture(|| {
         get_orig_fn!(RemakeRendererTexture, RemakeRendererTextureFn)(this);
     });

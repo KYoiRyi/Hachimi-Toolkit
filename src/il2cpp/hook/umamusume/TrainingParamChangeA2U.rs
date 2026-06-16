@@ -2,6 +2,7 @@ use crate::{core::Hachimi, il2cpp::{ext::{Il2CppStringExt, StringExt}, symbols::
 
 type GetCaptionTextFn = extern "C" fn(this: *mut Il2CppObject, info: *mut Il2CppObject) -> *mut Il2CppString;
 extern "C" fn GetCaptionText(this: *mut Il2CppObject, info: *mut Il2CppObject) -> *mut Il2CppString {
+    info!("HOOK_TRACE: Executing GetCaptionText in TrainingParamChangeA2U.rs");
     let text = get_orig_fn!(GetCaptionText, GetCaptionTextFn)(this, info);
     let text_utf16 = unsafe { (*text).as_utf16str() };
 

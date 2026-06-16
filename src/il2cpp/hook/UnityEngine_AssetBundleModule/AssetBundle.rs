@@ -55,6 +55,7 @@ pub fn check_asset_bundle_name(this: *mut Il2CppObject, metadata: &AssetMetadata
 
 type LoadAssetFn = extern "C" fn(this: *mut Il2CppObject, name: *mut Il2CppString, type_: *mut Il2CppObject) -> *mut Il2CppObject;
 extern "C" fn LoadAsset_Internal(this: *mut Il2CppObject, name: *mut Il2CppString, type_: *mut Il2CppObject) -> *mut Il2CppObject {
+    info!("HOOK_TRACE: Executing LoadAsset_Internal in AssetBundle.rs");
     let asset = get_orig_fn!(LoadAsset_Internal, LoadAssetFn)(this, name, type_);
     on_LoadAsset(this, asset, name);
     asset
@@ -66,6 +67,7 @@ pub fn LoadAsset_Internal_orig(this: *mut Il2CppObject, name: *mut Il2CppString,
 
 type LoadAssetAsyncFn = extern "C" fn(this: *mut Il2CppObject, name: *mut Il2CppString, type_: *mut Il2CppObject) -> *mut Il2CppObject;
 extern "C" fn LoadAssetAsync_Internal(this: *mut Il2CppObject, name: *mut Il2CppString, type_: *mut Il2CppObject) -> *mut Il2CppObject {
+    info!("HOOK_TRACE: Executing LoadAssetAsync_Internal in AssetBundle.rs");
     let request = get_orig_fn!(LoadAssetAsync_Internal, LoadAssetAsyncFn)(this, name, type_);
     let info = RequestInfo {
         name_handle: GCHandle::new(name as _, false), // is name even guaranteed to survive in memory..?
@@ -113,6 +115,7 @@ pub fn on_LoadAsset(bundle: *mut Il2CppObject, asset: *mut Il2CppObject, name: *
 
 type LoadFromFileInternalFn = extern "C" fn(path: *mut Il2CppString, crc: u32, offset: u64) -> *mut Il2CppObject;
 extern "C" fn LoadFromFile_Internal(path: *mut Il2CppString, crc: u32, offset: u64) -> *mut Il2CppObject {
+    info!("HOOK_TRACE: Executing LoadFromFile_Internal in AssetBundle.rs");
     get_orig_fn!(LoadFromFile_Internal, LoadFromFileInternalFn)(path, crc, offset)
 }
 

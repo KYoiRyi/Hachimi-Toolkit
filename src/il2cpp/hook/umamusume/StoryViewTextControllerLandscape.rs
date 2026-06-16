@@ -16,6 +16,7 @@ pub fn get__textFrame(this: *mut Il2CppObject) -> *mut Il2CppObject {
 
 type SetFontSizeFn = extern "C" fn(this: *mut Il2CppObject, font_size: i32);
 extern "C" fn SetFontSize(this: *mut Il2CppObject, font_size: i32) {
+    info!("HOOK_TRACE: Executing SetFontSize in StoryViewTextControllerLandscape.rs");
     get_orig_fn!(SetFontSize, SetFontSizeFn)(this, font_size);
 
     if let Some(mult) = Hachimi::instance().localized_data.load().config.text_frame_font_size_multiplier {
@@ -28,6 +29,7 @@ extern "C" fn SetFontSize(this: *mut Il2CppObject, font_size: i32) {
 
 type SetLineSpacingFn = extern "C" fn(this: *mut Il2CppObject, fontSize: i32);
 extern "C" fn SetLineSpacing(this: *mut Il2CppObject, fontSize: i32) {
+    info!("HOOK_TRACE: Executing SetLineSpacing in StoryViewTextControllerLandscape.rs");
     get_orig_fn!(SetLineSpacing, SetLineSpacingFn)(this, fontSize);
 
     if let Some(mult) = Hachimi::instance().localized_data.load().config.text_frame_line_spacing_multiplier {
