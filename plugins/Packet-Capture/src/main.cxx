@@ -50,13 +50,6 @@ void Log(const std::string& msg) {
 }
 
 std::string GetPackageName() {
-    char cmdline[256] = {0};
-    FILE* fp = fopen("/proc/self/cmdline", "r");
-    if (fp) {
-        fgets(cmdline, sizeof(cmdline), fp);
-        fclose(fp);
-        return std::string(cmdline);
-    }
     return "jp.co.cygames.umamusume";
 }
 
@@ -76,26 +69,32 @@ void DumpByteArray(const std::string& prefix, void* arrayObj) {
     
     try {
         std::vector<uint8_t> v((uint8_t*)data, (uint8_t*)data + length);
-        json j = json::from_msgpack(v);
+        json j = json::from_msgpack(v, true, false);
         
-        char filename[256];
-        snprintf(filename, sizeof(filename), "%s/%s_%05d.json", g_outputDir.c_str(), prefix.c_str(), g_seq);
-        
-        std::ofstream out(filename);
-        if (out.is_open()) {
-            out << j.dump(4);
-            out.close();
+        if (!j.is_discarded()) {
+            char filename[256];
+            snprintf(filename, sizeof(filename), "%s/%s_%05d.json", g_outputDir.c_str(), prefix.c_str(), g_seq);
+            
+            std::ofstream out(filename);
+            if (out.is_open()) {
+                out << j.dump(4);
+                out.close();
+            }
+            return;
+        } else {
+            Log("msgpack parse discarded. Falling back to .bin.");
         }
     } catch (const std::exception& e) {
-        Log("Failed to parse msgpack: " + std::string(e.what()) + ". Falling back to .bin.");
-        char filename[256];
-        snprintf(filename, sizeof(filename), "%s/%s_%05d.bin", g_outputDir.c_str(), prefix.c_str(), g_seq);
-        
-        std::ofstream out(filename, std::ios::binary);
-        if (out.is_open()) {
-            out.write(data, length);
-            out.close();
-        }
+        Log("Exception during msgpack parsing: " + std::string(e.what()));
+    }
+    
+    char filename[256];
+    snprintf(filename, sizeof(filename), "%s/%s_%05d.bin", g_outputDir.c_str(), prefix.c_str(), g_seq);
+    
+    std::ofstream out(filename, std::ios::binary);
+    if (out.is_open()) {
+        out.write(data, length);
+        out.close();
     }
 }
 

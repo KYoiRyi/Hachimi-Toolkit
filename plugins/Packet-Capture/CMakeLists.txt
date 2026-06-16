@@ -7,4 +7,5 @@ add_library(packet_capture SHARED
 
 target_link_libraries(packet_capture log dl)
 set_target_properties(packet_capture PROPERTIES CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -s")

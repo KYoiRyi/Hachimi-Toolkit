@@ -39,14 +39,26 @@ std::string GetPackageName() {
 }
 
 void EnsureDirectory(const std::string& path) {
-    std::string current = "";
-    for (char c : path) {
-        current += c;
-        if (c == '/') {
-            mkdir(current.c_str(), 0777);
+    std::string cmd = "mkdir -p " + path;
+    system(cmd.c_str());
+}
+
+bool CheckConfig() {
+    std::string configPath = g_outputDir + "/config.txt";
+    std::ifstream ifs(configPath);
+    if (!ifs.is_open()) {
+        EnsureDirectory(g_outputDir);
+        std::ofstream ofs(configPath);
+        ofs << "dump=true\n";
+        return true;
+    }
+    std::string line;
+    while (std::getline(ifs, line)) {
+        if (line.find("dump=false") != std::string::npos) {
+            return false;
         }
     }
-    mkdir(current.c_str(), 0777);
+    return true;
 }
 
 // IL2CPP APIs
@@ -348,9 +360,13 @@ extern "C" __attribute__((visibility("default"))) bool hachimi_init_v3(HachimiGe
 
     std::string pkg = GetPackageName();
     g_outputDir = "/sdcard/Android/media/" + pkg + "/hachimi/DataDump";
-    EnsureDirectory("/sdcard/Android/media/" + pkg + "/hachimi");
     EnsureDirectory(g_outputDir);
-
+    
+    if (!CheckConfig()) {
+        Log("Data-Dumper is disabled via config.txt");
+        return true;
+    }
+    
     Log("Data-Dumper Plugin Initialized! Output Dir: " + g_outputDir);
 
     pthread_t t;
