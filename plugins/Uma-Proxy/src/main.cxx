@@ -123,9 +123,6 @@ static void* h_DecompressResponse(void* response, void* method_info) {
     return o_DecompressResponse(response, method_info);
 }
 
-typedef void* (*post_t)(void* this_ptr, void* url, void* postData, void* headers, void* method_info);
-static post_t o_Post = nullptr;
-
 typedef int (*curl_setopt_t)(void* curl, int option, void* param);
 static curl_setopt_t o_curl_setopt = nullptr;
 
