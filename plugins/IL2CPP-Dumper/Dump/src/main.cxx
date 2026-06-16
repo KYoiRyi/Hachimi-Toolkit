@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <stdio.h>
-
+#include <fstream>
 static void * g_il2cppThread = nullptr;
 static bool g_gcRegistered = false;
 
