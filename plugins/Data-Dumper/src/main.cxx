@@ -151,7 +151,7 @@ void DumpDatabase(const std::string& dbPath, const std::string& outFolder) {
 
     for (size_t i = 0; i < size; ++i) {
         void* img = assembly_get_image(assemblies[i]);
-        if (std::string(image_get_name(img)) == "umamusume.dll") {
+        if (std::string(image_get_name(img)) == "LibNative.Runtime.dll") {
             targetImage = img;
             break;
         }
