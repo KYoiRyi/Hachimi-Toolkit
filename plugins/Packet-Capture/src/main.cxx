@@ -7,6 +7,9 @@
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
+#include "json.hpp"
+
+using json = nlohmann::json;
 
 typedef void* (*HachimiGetApiFn)(const char* name);
 
@@ -63,13 +66,29 @@ void DumpByteArray(const std::string& prefix, void* arrayObj) {
     char* data = (char*)arrayObj + 0x20;
     
     g_seq++;
-    char filename[256];
-    snprintf(filename, sizeof(filename), "%s/%s_%05d.bin", g_outputDir.c_str(), prefix.c_str(), g_seq);
     
-    std::ofstream out(filename, std::ios::binary);
-    if (out.is_open()) {
-        out.write(data, length);
-        out.close();
+    try {
+        std::vector<uint8_t> v((uint8_t*)data, (uint8_t*)data + length);
+        json j = json::from_msgpack(v);
+        
+        char filename[256];
+        snprintf(filename, sizeof(filename), "%s/%s_%05d.json", g_outputDir.c_str(), prefix.c_str(), g_seq);
+        
+        std::ofstream out(filename);
+        if (out.is_open()) {
+            out << j.dump(4);
+            out.close();
+        }
+    } catch (const std::exception& e) {
+        Log("Failed to parse msgpack: " + std::string(e.what()) + ". Falling back to .bin.");
+        char filename[256];
+        snprintf(filename, sizeof(filename), "%s/%s_%05d.bin", g_outputDir.c_str(), prefix.c_str(), g_seq);
+        
+        std::ofstream out(filename, std::ios::binary);
+        if (out.is_open()) {
+            out.write(data, length);
+            out.close();
+        }
     }
 }
 
