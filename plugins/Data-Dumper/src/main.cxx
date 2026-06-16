@@ -60,7 +60,7 @@ typedef void* (*il2cpp_object_new_t)(void* klass);
 typedef void (*il2cpp_runtime_object_init_t)(void* obj);
 typedef void* (*il2cpp_string_new_t)(const char* str);
 typedef void* (*il2cpp_runtime_invoke_t)(void* method, void* obj, void** params, void** exc);
-typedef const wchar_t* (*il2cpp_string_chars_t)(void* str);
+typedef const uint16_t* (*il2cpp_string_chars_t)(void* str);
 typedef int32_t (*il2cpp_string_length_t)(void* str);
 typedef int (*il2cpp_thread_attach_t)(void* domain);
 typedef void* (*il2cpp_object_unbox_t)(void* obj);
@@ -100,10 +100,10 @@ bool InitIl2Cpp() {
     return true;
 }
 
-std::string UTF16ToUTF8(const wchar_t* wstr, int len) {
+std::string UTF16ToUTF8(const uint16_t* wstr, int len) {
     std::string out;
     for (int i = 0; i < len; ++i) {
-        wchar_t c = wstr[i];
+        uint16_t c = wstr[i];
         if (c < 0x80) out += (char)c;
         else if (c < 0x800) {
             out += (char)(0xC0 | (c >> 6));
@@ -119,7 +119,7 @@ std::string UTF16ToUTF8(const wchar_t* wstr, int len) {
 
 std::string GetIl2CppString(void* str) {
     if (!str) return "NULL";
-    const wchar_t* chars = string_chars(str);
+    const uint16_t* chars = string_chars(str);
     int len = string_length(str);
     return UTF16ToUTF8(chars, len);
 }
