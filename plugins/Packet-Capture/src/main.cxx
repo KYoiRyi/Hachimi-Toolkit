@@ -235,14 +235,10 @@ void OnGameInitialized() {
     }
 }
 
+typedef void (*hachimi_register_on_game_initialized_t)(void (*callback)());
+
 void* HookThread(void*) {
-    while (true) {
-        if (g_get_assembly_image) {
-            void* image_uma = g_get_assembly_image("umamusume.dll");
-            if (image_uma) break;
-        }
-        usleep(100000); // 100ms wait
-    }
+    usleep(8000000); // 8 seconds fallback wait
     OnGameInitialized();
     return nullptr;
 }
@@ -264,9 +260,16 @@ extern "C" bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
     
     Log("Packet-Capture Plugin Initialized! Output Dir: " + g_outputDir);
     
-    pthread_t t;
-    pthread_create(&t, nullptr, HookThread, nullptr);
-    pthread_detach(t);
+    hachimi_register_on_game_initialized_t register_init = (hachimi_register_on_game_initialized_t)get_api("hachimi_register_on_game_initialized");
+    if (register_init) {
+        Log("Using Hachimi game initialized callback event.");
+        register_init(OnGameInitialized);
+    } else {
+        Log("Fallback to 8s sleep thread.");
+        pthread_t t;
+        pthread_create(&t, nullptr, HookThread, nullptr);
+        pthread_detach(t);
+    }
     
     return true;
 }
