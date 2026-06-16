@@ -36,9 +36,17 @@ static il2cpp_string_length_t g_string_length = nullptr;
 
 static std::string g_outputDir;
 
+#include <sys/stat.h>
+
 void EnsureDirectory(const std::string& path) {
-    std::string cmd = "mkdir -p " + path;
-    system(cmd.c_str());
+    std::string current = "";
+    for (char c : path) {
+        current += c;
+        if (c == '/') {
+            mkdir(current.c_str(), 0777);
+        }
+    }
+    mkdir(current.c_str(), 0777);
 }
 
 void Log(const std::string& msg) {

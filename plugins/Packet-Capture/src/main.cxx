@@ -53,9 +53,17 @@ std::string GetPackageName() {
     return "jp.co.cygames.umamusume";
 }
 
+#include <sys/stat.h>
+
 void EnsureDirectory(const std::string& path) {
-    std::string cmd = "mkdir -p " + path;
-    system(cmd.c_str());
+    std::string current = "";
+    for (char c : path) {
+        current += c;
+        if (c == '/') {
+            mkdir(current.c_str(), 0777);
+        }
+    }
+    mkdir(current.c_str(), 0777);
 }
 
 void DumpByteArray(const std::string& prefix, void* arrayObj) {
