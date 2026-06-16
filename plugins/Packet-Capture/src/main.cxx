@@ -120,16 +120,13 @@ static compress_req_t o_CompressRequest = nullptr;
 static decompress_resp_t o_DecompressResponse = nullptr;
 
 static void* h_CompressRequest(void* body, void* method_info) {
-    DumpByteArray("compreq_in", body);
-    void* ret = o_CompressRequest(body, method_info);
-    DumpByteArray("compreq_out", ret);
-    return ret;
+    DumpByteArray("request", body);
+    return o_CompressRequest(body, method_info);
 }
 
 static void* h_DecompressResponse(void* response, void* method_info) {
-    DumpByteArray("decresp_in", response);
     void* ret = o_DecompressResponse(response, method_info);
-    DumpByteArray("decresp_out", ret);
+    DumpByteArray("response", ret);
     return ret;
 }
 
