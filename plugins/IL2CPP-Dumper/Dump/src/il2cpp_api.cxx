@@ -199,6 +199,7 @@ namespace api {
         thread_detach =
             ( thread_detach_t ) dlsym( gameAsm, "il2cpp_thread_detach" );
 
+#ifdef _WIN32
         custom_attrs_from_class = ( custom_attrs_from_class_t ) dlsym(
             gameAsm, "il2cpp_custom_attrs_from_class" );
         custom_attrs_from_method = ( custom_attrs_from_method_t ) dlsym(
@@ -207,6 +208,15 @@ namespace api {
             gameAsm, "il2cpp_custom_attrs_from_field" );
         custom_attrs_free =
             ( custom_attrs_free_t ) dlsym( gameAsm, "il2cpp_custom_attrs_free" );
+#else
+        // Custom attribute parsing inside the IL2CPP engine is highly prone to SIGSEGV 
+        // on obfuscated metadata (especially on Android). Since we cannot catch SIGSEGV 
+        // cleanly without signal handlers, we disable custom attributes dumping on Android.
+        custom_attrs_from_class = nullptr;
+        custom_attrs_from_method = nullptr;
+        custom_attrs_from_field = nullptr;
+        custom_attrs_free = nullptr;
+#endif
 
         field_get_token =
             ( field_get_token_t ) dlsym( gameAsm, "il2cpp_field_get_token" );
