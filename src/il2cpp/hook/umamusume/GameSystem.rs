@@ -49,6 +49,8 @@ extern "C" fn InitializeGame_MoveNext(enumerator: *mut Il2CppObject) -> bool {
 }
 
 fn InitializeGameCommon(enumerator: IEnumerator) -> IEnumerator {
+    if Hachimi::instance().config.load().ui_scale == 1.0 { return enumerator; }
+
     if let Err(e) = enumerator.hook_move_next(InitializeGame_MoveNext) {
         error!("Failed to hook InitializeGame enumerator: {}", e);
     }
