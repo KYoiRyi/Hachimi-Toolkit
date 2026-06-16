@@ -123,14 +123,53 @@ static void* h_DecompressResponse(void* response, void* method_info) {
     return o_DecompressResponse(response, method_info);
 }
 
-typedef void* (*get_url_t)(void* method_info);
-static get_url_t o_GetApplicationServerUrl = nullptr;
+typedef void* (*post_t)(void* this_ptr, void* url, void* postData, void* headers, void* method_info);
+static post_t o_Post = nullptr;
 
-static void* h_GetApplicationServerUrl(void* method_info) {
-    if (g_proxy_enabled && g_string_new) {
-        return g_string_new(g_proxy_url.c_str());
+typedef int (*curl_setopt_t)(void* curl, int option, void* param);
+static curl_setopt_t o_curl_setopt = nullptr;
+
+static int h_curl_setopt(void* curl, int option, void* param) {
+    if (option == 10002 && param) { // CURLOPT_URL
+        const char* u = (const char*)param;
+        std::string s_url(u);
+        if (g_proxy_enabled && s_url.find("api.games.umamusume.com") != std::string::npos) {
+            size_t p = s_url.find("/umamusume/");
+            std::string path = (p != std::string::npos) ? s_url.substr(p) : "/";
+            std::string new_url_s = g_proxy_url + path;
+            Log("[CURL-HOOK-SUCCESS] Intercepted URL: " + s_url + " -> " + new_url_s);
+            
+            // Allocate static buffer for thread-safe temporary string
+            static thread_local char rb[1024];
+            snprintf(rb, sizeof(rb), "%s", new_url_s.c_str());
+            return o_curl_setopt(curl, option, (void*)rb);
+        }
+        Log("[CURL-HOOK-IGNORED] Passed original URL: " + s_url);
     }
-    return o_GetApplicationServerUrl(method_info);
+    return o_curl_setopt(curl, option, param);
+}
+
+static void* h_Post(void* this_ptr, void* url_str, void* postData, void* headers, void* method_info) {
+    if (!url_str || !g_string_chars || !g_string_length) {
+        return o_Post(this_ptr, url_str, postData, headers, method_info);
+    }
+    
+    int32_t len = g_string_length(url_str);
+    uint16_t* chars = g_string_chars(url_str);
+    std::string s_url;
+    for (int i = 0; i < len; ++i) if (chars[i] < 0x80) s_url += (char)chars[i];
+    
+    if (g_proxy_enabled && s_url.find("api.games.umamusume.com") != std::string::npos) {
+        size_t p = s_url.find("/umamusume/");
+        std::string path = (p != std::string::npos) ? s_url.substr(p) : "/";
+        std::string new_url_s = g_proxy_url + path;
+        Log("[IL2CPP-HOOK-SUCCESS] Intercepted POST: " + s_url + " -> " + new_url_s);
+        void* new_url = g_string_new(new_url_s.c_str());
+        return o_Post(this_ptr, new_url, postData, headers, method_info);
+    }
+    
+    Log("[IL2CPP-HOOK-IGNORED] Passed original POST: " + s_url);
+    return o_Post(this_ptr, url_str, postData, headers, method_info);
 }
 
 void OnGameInitialized() {
@@ -171,22 +210,40 @@ void OnGameInitialized() {
         }
     }
     
-    // 2. Hook GameDefine.get_ApplicationServerUrl
-    if (image_uma) {
-        void* klass_gamedef = g_get_class(image_uma, "Gallop", "GameDefine");
-        if (klass_gamedef) {
-            void* a_get_url = g_get_method_addr(klass_gamedef, "get_ApplicationServerUrl", 0);
-            if (a_get_url) {
+    // 2. Hook Cute.Http.WWWRequest.Post
+    void* image_cute = g_get_assembly_image("Cute.Http.Assembly.dll");
+    if (image_cute) {
+        void* klass_www = g_get_class(image_cute, "Cute.Http", "WWWRequest");
+        if (klass_www) {
+            void* a_post = g_get_method_addr(klass_www, "Post", 3);
+            if (a_post) {
                 void* hachimi = g_hachimi_instance();
                 void* interceptor = g_hachimi_get_interceptor(hachimi);
-                o_GetApplicationServerUrl = (get_url_t)g_interceptor_hook(interceptor, a_get_url, (void*)h_GetApplicationServerUrl);
-                Log("Gallop.GameDefine.get_ApplicationServerUrl hook installed.");
+                o_Post = (post_t)g_interceptor_hook(interceptor, a_post, (void*)h_Post);
+                Log("Cute.Http.WWWRequest.Post hook installed.");
             } else {
-                Log("Failed to find get_ApplicationServerUrl address.");
+                Log("Failed to find WWWRequest.Post address.");
             }
         } else {
-            Log("Failed to find Gallop.GameDefine.");
+            Log("Failed to find Cute.Http.WWWRequest.");
         }
+    } else {
+        Log("Failed to get Cute.Http.Assembly.dll image.");
+    }
+    
+    // 3. Low-level curl_easy_setopt hook (fallback/native level)
+    void* handle_il2cpp = dlopen("libil2cpp.so", RTLD_LAZY);
+    if (handle_il2cpp) {
+        void* curl_sym = dlsym(handle_il2cpp, "curl_easy_setopt");
+        if (curl_sym) {
+            void* hachimi = g_hachimi_instance();
+            void* interceptor = g_hachimi_get_interceptor(hachimi);
+            o_curl_setopt = (curl_setopt_t)g_interceptor_hook(interceptor, curl_sym, (void*)h_curl_setopt);
+            Log("libcurl curl_easy_setopt hook installed via libil2cpp.so export.");
+        } else {
+            Log("curl_easy_setopt symbol not exported by libil2cpp.so.");
+        }
+        dlclose(handle_il2cpp);
     }
 }
 
