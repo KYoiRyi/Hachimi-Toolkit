@@ -10,6 +10,7 @@ impl_addr_wrapper_fn!(get_IsActiveInHierarchy, GET_IS_ACTIVE_IN_HIERARCHY_ADDR, 
 
 type AwakeFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn Awake(this: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     get_orig_fn!(Awake, AwakeFn)(this);
 
     let localized_data = Hachimi::instance().localized_data.load();
@@ -54,6 +55,7 @@ extern "C" fn Awake(this: *mut Il2CppObject) {
 
 type SetSystemTextWithLineHeadWrapFn = extern "C" fn(this: *mut Il2CppObject, system_text: *mut CharacterSystemText, maxCharacter: i32);
 extern "C" fn SetSystemTextWithLineHeadWrap(this: *mut Il2CppObject, system_text: *mut CharacterSystemText, max_character: i32) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let ld = &Hachimi::instance().localized_data.load();
     let systext = unsafe {&*system_text};
 

@@ -4,6 +4,7 @@ use super::StoryChoiceController;
 
 type GetTimeScaleByHighSpeedTypeFn = extern "C" fn() -> f32;
 extern "C" fn GetTimeScaleByHighSpeedType() -> f32 {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let mut res = get_orig_fn!(GetTimeScaleByHighSpeedType, GetTimeScaleByHighSpeedTypeFn)();
     if StoryChoiceController::is_checking_choice_auto_tap() {
         let delay = Hachimi::instance().config.load().story_choice_auto_select_delay;

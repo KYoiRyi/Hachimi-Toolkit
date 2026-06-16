@@ -9,6 +9,7 @@ use crate::{
 // el magico
 type GetRenderTextureDescriptorFn = extern "C" fn(cameraData: *mut isize,  renderPass: *mut Il2CppObject, targetRT: *mut RenderTextureDescriptor);
 extern "C" fn GetRenderTextureDescriptor(cameraData: *mut isize, renderPass: *mut Il2CppObject, targetRT: *mut RenderTextureDescriptor) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     get_orig_fn!(GetRenderTextureDescriptor, GetRenderTextureDescriptorFn)(cameraData, renderPass, targetRT);
 
     let msaa = Hachimi::instance().config.load().msaa;

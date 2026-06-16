@@ -28,6 +28,7 @@ extern "C" fn SetUpCharacterLimitBreakSkill(
     nextCardRairtyData: *mut Il2CppObject,
     atlas: *mut Il2CppObject,
 ) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     get_orig_fn!(SetUpCharacterLimitBreakSkill, SetUpCharacterLimitBreakSkillFn)(this, cardRairtyData, nextCardRairtyData, atlas);
 
     let text = get_nameText(this);

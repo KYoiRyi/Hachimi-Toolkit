@@ -11,6 +11,7 @@ fn get__descText(this: *mut Il2CppObject) -> *mut Il2CppObject {
 
 type UpdateCurrentFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn UpdateCurrent(this: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let name = get__nameText(this);
     let desc = get__descText(this);
 

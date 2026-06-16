@@ -5,6 +5,7 @@ use crate::{core::{gui::SimpleYesNoDialog, Gui, Hachimi}, il2cpp::{symbols::get_
 
 type StartPurchaseFn = extern "C" fn(this: *mut Il2CppObject, store_product_id: *mut Il2CppString, is_alert_agree: bool);
 extern "C" fn StartPurchase(this: *mut Il2CppObject, store_product_id: *mut Il2CppString, is_alert_agree: bool) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     // check it again cuz it might change later
     if steamworks::is_overlay_conflicting(&Hachimi::instance()) {
         let mut gui = Gui::instance().unwrap().lock().unwrap();

@@ -2,12 +2,14 @@ use crate::{core::taskbar::{self, TBPF_INDETERMINATE, TBPF_NOPROGRESS}, il2cpp::
 
 type ShowFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn Show(this: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     taskbar::update_connecting_state(TBPF_INDETERMINATE);
     get_orig_fn!(Show, ShowFn)(this);
 }
 
 type HideFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn Hide(this: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     taskbar::update_connecting_state(TBPF_NOPROGRESS);
     get_orig_fn!(Hide, HideFn)(this);
 }

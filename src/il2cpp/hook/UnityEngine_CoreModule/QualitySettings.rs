@@ -4,6 +4,7 @@ use crate::{core::Hachimi, il2cpp::{api::il2cpp_resolve_icall, types::*}};
 
 type SetVSyncCountFn = extern "C" fn(value: i32);
 pub extern "C" fn set_vSyncCount(mut value: i32) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let vsync_count = Hachimi::instance().vsync_count.load(atomic::Ordering::Relaxed);
     if vsync_count != -1 {
         value = vsync_count;

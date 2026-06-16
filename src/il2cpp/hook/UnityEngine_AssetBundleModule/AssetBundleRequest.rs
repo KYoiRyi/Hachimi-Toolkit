@@ -6,6 +6,7 @@ use super::AssetBundle::{self, REQUEST_INFOS};
 
 type GetResultFn = extern "C" fn(this: *mut Il2CppObject) -> *mut Il2CppObject;
 extern "C" fn GetResult(this: *mut Il2CppObject) -> *mut Il2CppObject {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let asset = get_orig_fn!(GetResult, GetResultFn)(this);
     let info = if let hash_map::Entry::Occupied(entry) = REQUEST_INFOS.lock().unwrap().entry(this as usize) {
         entry.remove()

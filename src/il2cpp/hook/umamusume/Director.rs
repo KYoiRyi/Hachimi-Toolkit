@@ -10,6 +10,7 @@ use std::sync::atomic::Ordering;
 
 type AwakeFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn Awake(this: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     IS_LIVE_SCENE.store(true, Ordering::Release);
     get_orig_fn!(Awake, AwakeFn)(this);
 

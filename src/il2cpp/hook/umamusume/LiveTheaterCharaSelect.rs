@@ -8,6 +8,7 @@ extern "C" fn CheckSwapChara(
     this: *mut Il2CppObject, index: i32, old_chara_id: i32, old_dress_id: i32,
     old_dress_color_id: i32, old_dress_id2: i32, old_dress_color_id2: i32, new_chara_id: i32
 ) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     if Hachimi::instance().config.load().live_theater_allow_same_chara {
         return;
     }

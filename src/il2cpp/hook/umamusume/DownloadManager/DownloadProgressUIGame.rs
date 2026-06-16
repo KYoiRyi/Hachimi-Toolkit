@@ -2,18 +2,21 @@ use crate::{core::taskbar::{self, TBPF_NORMAL, TBPF_NOPROGRESS}, il2cpp::{symbol
 
 type ShowFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn Show(this: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     taskbar::update_download_state(TBPF_NORMAL);
     get_orig_fn!(Show, ShowFn)(this);
 }
 
 type HideFn = extern "C" fn(this: *mut Il2CppObject, is_delay: bool);
 extern "C" fn Hide(this: *mut Il2CppObject, is_delay: bool) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     taskbar::update_download_state(TBPF_NOPROGRESS);
     get_orig_fn!(Hide, HideFn)(this, is_delay);
 }
 
 type SetProgressFn = extern "C" fn(this: *mut Il2CppObject, progress: f32);
 extern "C" fn SetProgress(this: *mut Il2CppObject, progress: f32) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     taskbar::update_download_value((progress * 10000.0) as u64, 10000);
     get_orig_fn!(SetProgress, SetProgressFn)(this, progress);
 }

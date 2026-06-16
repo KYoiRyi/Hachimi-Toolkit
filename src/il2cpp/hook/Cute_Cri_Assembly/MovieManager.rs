@@ -4,6 +4,7 @@ use crate::{core::Hachimi, il2cpp::{ext::{Il2CppStringExt, StringExt}, symbols::
 
 type GetMovieFilePathFn = extern "C" fn(this: *mut Il2CppObject, movie_file: *mut Il2CppString) -> *mut Il2CppString;
 extern "C" fn GetMovieFilePath(this: *mut Il2CppObject, movie_file: *mut Il2CppString) -> *mut Il2CppString {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let orig_fn = get_orig_fn!(GetMovieFilePath, GetMovieFilePathFn);
 
     let movie_file_str = unsafe { (*movie_file).as_utf16str().to_string() };

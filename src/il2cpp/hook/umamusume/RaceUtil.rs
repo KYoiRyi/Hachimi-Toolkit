@@ -4,6 +4,7 @@ use super::{ApplicationSettingSaveLoader, SaveDataManager};
 
 type GetRaceDynamicCameraSettingDataFn = extern "C" fn(boot_mode: *mut Il2CppObject) -> bool;
 extern "C" fn GetRaceDynamicCameraSettingData(boot_mode: *mut Il2CppObject) -> bool {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     if Hachimi::instance().config.load().force_allow_dynamic_camera {
         let save_data_manager = SaveDataManager::instance();
         if save_data_manager.is_null() { return false; }

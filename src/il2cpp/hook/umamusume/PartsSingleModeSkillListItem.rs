@@ -93,6 +93,7 @@ fn UpdateItemCommon(this: *mut Il2CppObject, _skill_info: *mut Il2CppObject, ori
 
 type UpdateItemJpFn = extern "C" fn(this: *mut Il2CppObject, skill_info: *mut Il2CppObject, is_plate_effect_enable: bool, adjuster_data: *mut Il2CppObject, resource_hash: i32);
 extern "C" fn UpdateItemJp(this: *mut Il2CppObject, skill_info: *mut Il2CppObject, is_plate_effect_enable: bool, adjuster_data: *mut Il2CppObject, resource_hash: i32) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     UpdateItemCommon(this, skill_info, || {
         get_orig_fn!(UpdateItemJp, UpdateItemJpFn)(this, skill_info, is_plate_effect_enable, adjuster_data, resource_hash);
     });
@@ -100,6 +101,7 @@ extern "C" fn UpdateItemJp(this: *mut Il2CppObject, skill_info: *mut Il2CppObjec
 
 type UpdateItemOtherFn = extern "C" fn(this: *mut Il2CppObject, skill_info: *mut Il2CppObject, is_plate_effect_enable: bool);
 extern "C" fn UpdateItemOther(this: *mut Il2CppObject, skill_info: *mut Il2CppObject, is_plate_effect_enable: bool) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     UpdateItemCommon(this, skill_info, || {
         get_orig_fn!(UpdateItemOther, UpdateItemOtherFn)(this, skill_info, is_plate_effect_enable);
     });
@@ -129,6 +131,7 @@ fn get_skill_text(skill_id: i32) -> (String, String) {
 
 type SetupOnClickSkillButtonFn = extern "C" fn(this: *mut Il2CppObject, info: *mut Il2CppObject);
 extern "C" fn SetupOnClickSkillButton(this: *mut Il2CppObject, info: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     if !Hachimi::instance().config.load().skill_info_dialog {
         get_orig_fn!(SetupOnClickSkillButton, SetupOnClickSkillButtonFn)(this, info);
         return;

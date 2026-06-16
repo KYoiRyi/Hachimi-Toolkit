@@ -65,6 +65,7 @@ pub static ACTIVE_TEXT_COMPONENTS: Lazy<Mutex<FnvHashMap<usize, String>>> = Lazy
 
 type SetTextFn = extern "C" fn(this: *mut Il2CppObject, value: *mut Il2CppString);
 pub extern "C" fn set_text_hook(this: *mut Il2CppObject, value: *mut Il2CppString) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     if value.is_null() {
         return get_orig_fn!(set_text_hook, SetTextFn)(this, value);
     }

@@ -21,6 +21,7 @@ pub fn instance() -> *mut Il2CppObject {
 
 type GetVirtualResolutionFn = extern "C" fn(this: *mut Il2CppObject) -> Vector2Int_t;
 extern "C" fn GetVirtualResolution(this: *mut Il2CppObject) -> Vector2Int_t {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let mut res = get_orig_fn!(GetVirtualResolution, GetVirtualResolutionFn)(this);
     let mult = Hachimi::instance().config.load().virtual_res_mult;
     if mult != 1.0 {
@@ -31,6 +32,7 @@ extern "C" fn GetVirtualResolution(this: *mut Il2CppObject) -> Vector2Int_t {
 
 type GetVirtualResolution3DFn = extern "C" fn(this: *mut Il2CppObject, is_forced_wide_aspect: bool) -> Vector2Int_t;
 extern "C" fn GetVirtualResolution3D(this: *mut Il2CppObject, is_forced_wide_aspect: bool) -> Vector2Int_t {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let mut res = get_orig_fn!(GetVirtualResolution3D, GetVirtualResolution3DFn)(this, is_forced_wide_aspect);
     let mult = Hachimi::instance().config.load().virtual_res_mult;
     if mult != 1.0 &&
@@ -44,6 +46,7 @@ extern "C" fn GetVirtualResolution3D(this: *mut Il2CppObject, is_forced_wide_asp
 
 type GetVirtualResolutionWidth3DFn = extern "C" fn(this: *mut Il2CppObject) -> i32;
 extern "C" fn GetVirtualResolutionWidth3D(this: *mut Il2CppObject) -> i32 {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let mut width = get_orig_fn!(GetVirtualResolutionWidth3D, GetVirtualResolutionWidth3DFn)(this);
     let mult = Hachimi::instance().config.load().virtual_res_mult;
     if mult != 1.0 {
@@ -80,6 +83,7 @@ pub enum MsaaQuality {
 
 type get_IsMSAAFn = extern "C" fn(this: *mut Il2CppObject) -> bool;
 pub extern "C" fn get_IsMSAA(this: *mut Il2CppObject) -> bool {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     if Hachimi::instance().config.load().msaa != MsaaQuality::Disabled {
         return true;
     }
@@ -88,6 +92,7 @@ pub extern "C" fn get_IsMSAA(this: *mut Il2CppObject) -> bool {
 
 type set_ResolutionScaleFn = extern "C" fn(this: *mut Il2CppObject, value: f32);
 extern "C" fn set_ResolutionScale(this: *mut Il2CppObject, value: f32) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let render_scale = Hachimi::instance().config.load().render_scale;
     let target_value = if render_scale != 1.0 { render_scale } else { value };
     get_orig_fn!(set_ResolutionScale, set_ResolutionScaleFn)(this, target_value);
@@ -95,6 +100,7 @@ extern "C" fn set_ResolutionScale(this: *mut Il2CppObject, value: f32) {
 
 type set_ResolutionScale2DFn = extern "C" fn(this: *mut Il2CppObject, value: f32);
 pub extern "C" fn set_ResolutionScale2D(this: *mut Il2CppObject, value: f32) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let render_scale = Hachimi::instance().config.load().render_scale;
     let target_value = if render_scale != 1.0 { render_scale } else { value };
     get_orig_fn!(set_ResolutionScale2D, set_ResolutionScale2DFn)(this, target_value);
@@ -102,6 +108,7 @@ pub extern "C" fn set_ResolutionScale2D(this: *mut Il2CppObject, value: f32) {
 
 type Get3DAntiAliasingLevelFn = extern "C" fn(this: *mut Il2CppObject, allowMSAA: bool) -> i32;
 extern "C" fn Get3DAntiAliasingLevel(this: *mut Il2CppObject, allowMSAA: bool) -> i32 {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let msaa = Hachimi::instance().config.load().msaa;
     if allowMSAA && msaa != MsaaQuality::Disabled {
         return msaa as i32;
@@ -111,6 +118,7 @@ extern "C" fn Get3DAntiAliasingLevel(this: *mut Il2CppObject, allowMSAA: bool) -
 
 type ApplyGraphicsQualityFn = extern "C" fn(this: *mut Il2CppObject, quality: GraphicsQuality, force: bool);
 extern "C" fn ApplyGraphicsQuality(this: *mut Il2CppObject, quality: GraphicsQuality, force: bool) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let custom_quality = Hachimi::instance().config.load().graphics_quality;
     if custom_quality != GraphicsQuality::Default {
         return get_orig_fn!(ApplyGraphicsQuality, ApplyGraphicsQualityFn)(this, custom_quality, true);

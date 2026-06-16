@@ -15,6 +15,7 @@ pub static PROCESSED: Lazy<Mutex<FnvHashMap<usize, GCHandle>>> = Lazy::new(|| Mu
 
 type InitializeFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn Initialize(this: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     get_orig_fn!(Initialize, InitializeFn)(this);
 
     if let hash_map::Entry::Vacant(e) = PROCESSED.lock().unwrap().entry(this as usize) {

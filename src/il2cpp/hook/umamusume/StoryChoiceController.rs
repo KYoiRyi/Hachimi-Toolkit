@@ -9,6 +9,7 @@ pub fn is_checking_choice_auto_tap() -> bool {
 
 type CheckChoiceAutoTapFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn CheckChoiceAutoTap(this: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     IS_CHECKING_CHOICE_AUTO_TAP.store(true, atomic::Ordering::Relaxed);
     get_orig_fn!(CheckChoiceAutoTap, CheckChoiceAutoTapFn)(this);
     IS_CHECKING_CHOICE_AUTO_TAP.store(false, atomic::Ordering::Relaxed);

@@ -9,6 +9,7 @@ const COMIC_TITLE_LINE_WIDTH: usize = 23;
 
 type SetupLoadingTipsFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn SetupLoadingTips(this: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     get_orig_fn!(SetupLoadingTips, SetupLoadingTipsFn)(this);
 
     if Hachimi::instance().localized_data.load().config.now_loading_comic_title_ellipsis {
@@ -45,6 +46,7 @@ extern "C" fn Show(this: *mut Il2CppObject, #[allow(unused_mut)] mut type_: i32,
 
 type HideFn = extern "C" fn(this: *mut Il2CppObject, onComplete: *mut Il2CppDelegate, overrideDuration: *mut Il2CppObject, easeType: i32, onUnloadCustomEffectResourcesComplete: *mut Il2CppDelegate);
 extern "C" fn Hide(this: *mut Il2CppObject, onComplete: *mut Il2CppDelegate, overrideDuration: *mut Il2CppObject, easeType: i32, onUnloadCustomEffectResourcesComplete: *mut Il2CppDelegate) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let config = crate::core::Hachimi::instance().config.load();
     if !config.hide_now_loading {
         get_orig_fn!(Hide, HideFn)(this, onComplete, overrideDuration, easeType, onUnloadCustomEffectResourcesComplete);

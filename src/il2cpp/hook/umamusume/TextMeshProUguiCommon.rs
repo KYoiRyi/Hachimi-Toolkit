@@ -2,6 +2,7 @@ use crate::{core::Hachimi, il2cpp::{ext::LocalizedDataExt, hook::Unity_TextMeshP
 
 type AwakeFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn Awake(this: *mut Il2CppObject) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     get_orig_fn!(Awake, AwakeFn)(this);
 
     let tmp_font = Hachimi::instance().localized_data.load().load_tmp_replacement_font();

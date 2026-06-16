@@ -17,6 +17,7 @@ fn PlayTypeWriteCommon(mut message: *mut Il2CppString) -> *mut Il2CppString {
 
 type PlayTypeWriteJpFn = extern "C" fn(this: *mut Il2CppObject, message: *mut Il2CppString, skip_add_system_log: bool);
 extern "C" fn PlayTypeWriteJp(this: *mut Il2CppObject, mut message: *mut Il2CppString, skip_add_system_log: bool) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     if !message.is_null() {
         message = PlayTypeWriteCommon(message);
     }
@@ -25,6 +26,7 @@ extern "C" fn PlayTypeWriteJp(this: *mut Il2CppObject, mut message: *mut Il2CppS
 
 type PlayTypeWriteOtherFn = extern "C" fn(this: *mut Il2CppObject, message: *mut Il2CppString);
 extern "C" fn PlayTypeWriteOther(this: *mut Il2CppObject, mut message: *mut Il2CppString) {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     if !message.is_null() {
         message = PlayTypeWriteCommon(message);
     }

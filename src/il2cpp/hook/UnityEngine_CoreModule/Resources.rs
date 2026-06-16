@@ -4,6 +4,7 @@ use super::{AsyncOperation, Object};
 
 type UnloadUnusedAssetsFn = extern "C" fn() -> *mut Il2CppObject;
 extern "C" fn UnloadUnusedAssets() -> *mut Il2CppObject {
+    std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let res = get_orig_fn!(UnloadUnusedAssets, UnloadUnusedAssetsFn)();
     let delegate = create_delegate(unsafe { AsyncOperation::ACTION_ASYNCOPERATION_CLASS }, 1, || {
         TextFrame::PROCESSED.lock().unwrap().retain(retain_object_gc_handle);
