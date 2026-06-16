@@ -127,27 +127,14 @@ static void* h_DecompressResponse(void* response, void* method_info) {
     return o_DecompressResponse(response, method_info);
 }
 
-static void* h_Post(void* this_ptr, void* url_str, void* postData, void* headers, void* method_info) {
-    if (!g_proxy_enabled || !url_str || !g_string_chars) {
-        return o_Post(this_ptr, url_str, postData, headers, method_info);
+typedef void* (*get_url_t)(void* method_info);
+static get_url_t o_GetApplicationServerUrl = nullptr;
+
+static void* h_GetApplicationServerUrl(void* method_info) {
+    if (g_proxy_enabled && g_string_new) {
+        return g_string_new(g_proxy_url.c_str());
     }
-    
-    int32_t len = g_string_length(url_str);
-    uint16_t* chars = g_string_chars(url_str);
-    std::string s_url;
-    for (int i = 0; i < len; ++i) {
-        if (chars[i] < 0x80) s_url += (char)chars[i];
-    }
-    
-    size_t pos = s_url.find(g_target_host);
-    if (pos != std::string::npos) {
-        s_url.replace(pos, g_target_host.length(), g_proxy_url);
-        Log("Proxy Redirect: " + s_url);
-        void* new_url = g_string_new(s_url.c_str());
-        return o_Post(this_ptr, new_url, postData, headers, method_info);
-    }
-    
-    return o_Post(this_ptr, url_str, postData, headers, method_info);
+    return o_GetApplicationServerUrl(method_info);
 }
 
 void OnGameInitialized() {
@@ -188,25 +175,22 @@ void OnGameInitialized() {
         }
     }
     
-    // 2. Hook Cute.Http.WWWRequest.Post
-    void* image_cute = g_get_assembly_image("Cute.Http.Assembly.dll");
-    if (image_cute) {
-        void* klass_www = g_get_class(image_cute, "Cute.Http", "WWWRequest");
-        if (klass_www) {
-            void* a_post = g_get_method_addr(klass_www, "Post", 3);
-            if (a_post) {
+    // 2. Hook AppDefine.get_ApplicationServerUrl
+    if (image_uma) {
+        void* klass_appdef = g_get_class(image_uma, "Gallop", "AppDefine");
+        if (klass_appdef) {
+            void* a_get_url = g_get_method_addr(klass_appdef, "get_ApplicationServerUrl", 0);
+            if (a_get_url) {
                 void* hachimi = g_hachimi_instance();
                 void* interceptor = g_hachimi_get_interceptor(hachimi);
-                o_Post = (post_t)g_interceptor_hook(interceptor, a_post, (void*)h_Post);
-                Log("Cute.Http.WWWRequest.Post hook installed.");
+                o_GetApplicationServerUrl = (get_url_t)g_interceptor_hook(interceptor, a_get_url, (void*)h_GetApplicationServerUrl);
+                Log("Gallop.AppDefine.get_ApplicationServerUrl hook installed.");
             } else {
-                Log("Failed to find WWWRequest.Post address.");
+                Log("Failed to find get_ApplicationServerUrl address.");
             }
         } else {
-            Log("Failed to find Cute.Http.WWWRequest.");
+            Log("Failed to find Gallop.AppDefine.");
         }
-    } else {
-        Log("Failed to get Cute.Http.Assembly.dll image.");
     }
 }
 
