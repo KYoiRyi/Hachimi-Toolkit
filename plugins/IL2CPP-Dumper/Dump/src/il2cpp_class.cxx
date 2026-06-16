@@ -253,10 +253,14 @@ std::vector<FieldData> Il2CppClass::GetFields( ) const {
     }
 
     void * iter = nullptr;
-    while ( auto field = api::class_get_fields( klass, &iter ) ) {
-        if ( !field || !IsValidPointer(field) )
-            continue;
+    int field_idx = 0;
+    while ( true ) {
+        Log("    -> GetFields iter " + std::to_string(field_idx));
+        void * field = api::class_get_fields( klass, &iter );
+        if ( !field ) break;
+        if ( !IsValidPointer(field) ) continue;
 
+        Log("    -> field_get_name");
         const char * nRaw =
             api::field_get_name ? api::field_get_name( field ) : nullptr;
         std::string n;
@@ -265,13 +269,18 @@ std::vector<FieldData> Il2CppClass::GetFields( ) const {
 
         FieldData fd;
         fd.name = n;
+        Log("    -> field_get_flags");
         fd.flags = api::field_get_flags ? api::field_get_flags( field ) : 0;
+        Log("    -> field_get_offset");
         fd.offset = api::field_get_offset ? api::field_get_offset( field ) : -1;
+        Log("    -> field_get_token");
         fd.token = api::field_get_token ? api::field_get_token( field ) : 0;
         fd.raw = field;
 
+        Log("    -> field_get_type");
         void * ftype =
             api::field_get_type ? api::field_get_type( field ) : nullptr;
+        Log("    -> type_get_name");
         const char * tnameRaw =
             ftype && IsValidPointer(ftype) && api::type_get_name ? api::type_get_name( ftype ) : nullptr;
         std::string tname;
@@ -281,6 +290,7 @@ std::vector<FieldData> Il2CppClass::GetFields( ) const {
             fd.type = "object";
         }
 
+        Log("    -> custom_attrs_from_field");
         if ( api::custom_attrs_from_field ) {
             void * cache = nullptr;
             __try {
@@ -289,10 +299,12 @@ std::vector<FieldData> Il2CppClass::GetFields( ) const {
             __except ( EXCEPTION_EXECUTE_HANDLER ) {
                 cache = nullptr;
             }
+            Log("    -> ParseAttrCache");
             fd.attributes = ParseAttrCache( cache );
         }
 
         fields.emplace_back( std::move( fd ) );
+        field_idx++;
     }
 
     return fields;
