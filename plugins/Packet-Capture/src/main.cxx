@@ -20,7 +20,7 @@ typedef void* (*interceptor_hook_t)(void* interceptor, void* orig_addr, void* ho
 typedef void* (*il2cpp_get_assembly_image_t)(const char* assembly_name);
 typedef void* (*il2cpp_get_class_t)(void* image, const char* namespaze, const char* name);
 typedef void* (*il2cpp_get_method_t)(void* klass, const char* name, int argsCount);
-typedef void* (*il2cpp_get_method_addr_t)(void* method);
+typedef void* (*il2cpp_get_method_addr_t)(void* klass, const char* name, int argsCount);
 
 typedef void (*hachimi_log_t)(int level, const char* tag, const char* message);
 typedef void (*hachimi_register_on_game_initialized_t)(void (*callback)());
@@ -182,8 +182,8 @@ void OnGameInitialized() {
         return;
     }
     
-    void* a_compress = g_get_method_addr(m_compress);
-    void* a_decompress = g_get_method_addr(m_decompress);
+    void* a_compress = g_get_method_addr(klass, "CompressRequest", 1);
+    void* a_decompress = g_get_method_addr(klass, "DecompressResponse", 1);
     
     if (!a_compress || !a_decompress) {
         Log("Failed to get method addresses");
