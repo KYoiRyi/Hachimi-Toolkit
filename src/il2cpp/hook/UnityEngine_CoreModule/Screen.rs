@@ -46,6 +46,7 @@ pub fn apply_auto_full_screen(mut width: i32, mut height: i32) -> bool {
 
 type SetResolutionInjectedFn = extern "C" fn(width: i32, height: i32, fullscreen_mode: i32, preferred_refresh_rate: *const RefreshRate);
 extern "C" fn SetResolution_Injected(width: i32, height: i32, full_screen_mode: i32, preferred_refresh_rate: *const RefreshRate) {
+    info!("HOOK_TRACE: Executing SetResolution_Injected in Screen.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let windows_config = &Hachimi::instance().config.load().windows;
     if windows_config.auto_full_screen {

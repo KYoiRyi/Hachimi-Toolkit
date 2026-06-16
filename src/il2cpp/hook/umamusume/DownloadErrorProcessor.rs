@@ -2,6 +2,7 @@ use crate::{core::taskbar::{self, TBPF_ERROR}, il2cpp::{symbols::get_method_addr
 
 type ExecDownloadErrorProcessFn = extern "C" fn(this: *mut Il2CppObject, error: *mut Il2CppObject, on_retry: *mut Il2CppObject, on_goto_title: *mut Il2CppObject);
 extern "C" fn ExecDownloadErrorProcess(this: *mut Il2CppObject, error: *mut Il2CppObject, on_retry: *mut Il2CppObject, on_goto_title: *mut Il2CppObject) {
+    info!("HOOK_TRACE: Executing ExecDownloadErrorProcess in DownloadErrorProcessor.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     taskbar::update_download_state(TBPF_ERROR);
     get_orig_fn!(ExecDownloadErrorProcess, ExecDownloadErrorProcessFn)(this, error, on_retry, on_goto_title);

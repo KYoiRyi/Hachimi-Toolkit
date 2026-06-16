@@ -17,6 +17,7 @@ pub enum BgSeason {
 
 type GetSeasonForHomeFn = extern "C" fn(this: *mut Il2CppObject, dateTime: *mut Il2CppObject) -> BgSeason;
 extern "C" fn GetSeasonForHome(this: *mut Il2CppObject, dateTime: *mut Il2CppObject) -> BgSeason {
+    info!("HOOK_TRACE: Executing GetSeasonForHome in TimeUtil.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let bg_season = Hachimi::instance().config.load().homescreen_bgseason;
     if bg_season != BgSeason::None {

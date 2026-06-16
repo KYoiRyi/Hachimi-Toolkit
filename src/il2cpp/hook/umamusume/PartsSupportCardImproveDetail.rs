@@ -13,6 +13,7 @@ const MAX_HEIGHT: f32 = 55.0;
 
 type SetupFn = extern "C" fn(this: *mut Il2CppObject, workSupportCard: *mut Il2CppObject, buttonAction: *mut Il2CppDelegate, hash: i32, enableObtain: bool);
 extern "C" fn Setup(this: *mut Il2CppObject, workSupportCard: *mut Il2CppObject, buttonAction: *mut Il2CppDelegate, hash: i32, enableObtain: bool) {
+    info!("HOOK_TRACE: Executing Setup in PartsSupportCardImproveDetail.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     get_orig_fn!(Setup, SetupFn)(this, workSupportCard, buttonAction, hash, enableObtain);
 

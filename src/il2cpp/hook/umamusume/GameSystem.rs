@@ -38,6 +38,7 @@ pub fn on_game_initialized() {
 }
 
 extern "C" fn InitializeGame_MoveNext(enumerator: *mut Il2CppObject) -> bool {
+    info!("HOOK_TRACE: Executing InitializeGame_MoveNext in GameSystem.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let moved = get_orig_fn!(InitializeGame_MoveNext, MoveNextFn)(enumerator);
     if !moved {
@@ -59,6 +60,7 @@ fn InitializeGameCommon(enumerator: IEnumerator) -> IEnumerator {
 
 type InitializeGameJpFn = extern "C" fn(this: *mut Il2CppObject, on_complete_initialize_ui: *mut Il2CppObject) -> IEnumerator;
 extern "C" fn InitializeGameJp(this: *mut Il2CppObject, on_complete_initialize_ui: *mut Il2CppObject) -> IEnumerator {
+    info!("HOOK_TRACE: Executing InitializeGameJp in GameSystem.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let enumerator = get_orig_fn!(InitializeGameJp, InitializeGameJpFn)(this, on_complete_initialize_ui);
     InitializeGameCommon(enumerator)
@@ -66,6 +68,7 @@ extern "C" fn InitializeGameJp(this: *mut Il2CppObject, on_complete_initialize_u
 
 type InitializeGameOtherFn = extern "C" fn(this: *mut Il2CppObject) -> IEnumerator;
 extern "C" fn InitializeGameOther(this: *mut Il2CppObject) -> IEnumerator {
+    info!("HOOK_TRACE: Executing InitializeGameOther in GameSystem.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let enumerator = get_orig_fn!(InitializeGameOther, InitializeGameOtherFn)(this);
     InitializeGameCommon(enumerator)

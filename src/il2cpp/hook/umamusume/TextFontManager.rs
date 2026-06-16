@@ -4,6 +4,7 @@ use super::TextFormat;
 
 type GetChineseFontFn = extern "C" fn(this: *mut Il2CppObject) -> *mut Il2CppObject;
 extern "C" fn GetChineseFont(this: *mut Il2CppObject) -> *mut Il2CppObject {
+    info!("HOOK_TRACE: Executing GetChineseFont in TextFontManager.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let font = Hachimi::instance().localized_data.load().load_replacement_font();
     if !font.is_null() {
@@ -14,6 +15,7 @@ extern "C" fn GetChineseFont(this: *mut Il2CppObject) -> *mut Il2CppObject {
 
 type LoadResourcesFolderFontFn = extern "C" fn(this: *mut Il2CppObject, font_type: TextFormat::Font) -> *mut Il2CppObject;
 extern "C" fn LoadResourcesFolderFont(this: *mut Il2CppObject, font_type: TextFormat::Font) -> *mut Il2CppObject {
+    info!("HOOK_TRACE: Executing LoadResourcesFolderFont in TextFontManager.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     match font_type {
         TextFormat::Font::Dynamic01 | TextFormat::Font::Chinese_Font01 => {

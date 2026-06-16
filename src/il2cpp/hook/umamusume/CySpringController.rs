@@ -18,6 +18,7 @@ fn set_UpdateMode(this: *mut Il2CppObject, value: &SpringUpdateMode) {
 
 type InitFn = extern "C" fn(this: *mut Il2CppObject);
 extern "C" fn Init(this: *mut Il2CppObject) {
+    info!("HOOK_TRACE: Executing Init in CySpringController.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     get_orig_fn!(Init, InitFn)(this);
 

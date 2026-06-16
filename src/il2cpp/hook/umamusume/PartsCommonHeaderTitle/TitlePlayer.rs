@@ -10,6 +10,7 @@ use crate::{
 
 type SetTextFn = extern "C" fn(this: *mut Il2CppObject, text: *mut Il2CppString);
 extern "C" fn SetText(this: *mut Il2CppObject, text: *mut Il2CppString) {
+    info!("HOOK_TRACE: Executing SetText in TitlePlayer.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let utf_str = unsafe { (*text).as_utf16str() };
     // doesn't run through TextGenerator, ignore its filters

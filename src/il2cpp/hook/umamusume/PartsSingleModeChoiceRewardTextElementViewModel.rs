@@ -11,6 +11,7 @@ use crate::{
 type GetParameterValueTextFn =
     extern "C" fn(this: *mut Il2CppObject, param: i32) -> *mut Il2CppString;
 extern "C" fn GetParameterValueText(this: *mut Il2CppObject, param: i32) -> *mut Il2CppString {
+    info!("HOOK_TRACE: Executing GetParameterValueText in PartsSingleModeChoiceRewardTextElementViewModel.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let mut text = get_orig_fn!(GetParameterValueText, GetParameterValueTextFn)(this, param);
     let utf_str = unsafe { (*text).as_utf16str() };

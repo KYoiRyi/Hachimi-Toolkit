@@ -8,6 +8,7 @@ pub extern "C" fn GetSafetyNetStatus(
     api_key: *mut Il2CppString, nonce: *mut Il2CppString,
     on_success: *mut Il2CppDelegate, _on_error: *mut Il2CppDelegate
 ) {
+    info!("HOOK_TRACE: Executing GetSafetyNetStatus in SafetyNet.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     get_orig_fn!(GetSafetyNetStatus, GetSafetyNetStatusFn)(api_key, nonce, on_success, on_success);
 }

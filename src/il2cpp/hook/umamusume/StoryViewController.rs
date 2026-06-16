@@ -4,6 +4,7 @@ use super::StoryChoiceController;
 
 type GetTimeScaleByHighSpeedTypeFn = extern "C" fn() -> f32;
 extern "C" fn GetTimeScaleByHighSpeedType() -> f32 {
+    info!("HOOK_TRACE: Executing GetTimeScaleByHighSpeedType in StoryViewController.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let mut res = get_orig_fn!(GetTimeScaleByHighSpeedType, GetTimeScaleByHighSpeedTypeFn)();
     if StoryChoiceController::is_checking_choice_auto_tap() {

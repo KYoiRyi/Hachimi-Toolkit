@@ -10,6 +10,7 @@ extern "C" fn SetupAndOpen(
     this: *mut Il2CppObject, dialog_data: *mut Il2CppObject, on_selected: *mut Il2CppObject,
     on_cancel: *mut Il2CppObject, is_special_unlock_race: bool, race_info: *mut Il2CppObject
 ) {
+    info!("HOOK_TRACE: Executing SetupAndOpen in DialogRaceOrientation.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     let force_allow_dynamic_camera = Hachimi::instance().config.load().force_allow_dynamic_camera;
     let mut orig_race_type = None;

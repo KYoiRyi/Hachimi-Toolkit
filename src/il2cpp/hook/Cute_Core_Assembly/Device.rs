@@ -1,6 +1,7 @@
 use crate::il2cpp::{symbols::get_method_addr, types::*};
 
 extern "C" fn IsIllegalUser() -> bool {
+    info!("HOOK_TRACE: Executing IsIllegalUser in Device.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr()); false }
 
 pub fn init(Cute_Core_Assembly: *const Il2CppImage) {

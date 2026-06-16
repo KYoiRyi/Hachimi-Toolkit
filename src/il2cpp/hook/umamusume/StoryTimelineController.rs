@@ -17,6 +17,7 @@ pub fn last_block_id() -> i32 {
 
 type GotoBlockFn = extern "C" fn(this: *mut Il2CppObject, block_id: i32, weaken_cy_spring: bool, is_update: bool, is_choice: bool);
 pub extern "C" fn GotoBlock(this: *mut Il2CppObject, block_id: i32, weaken_cy_spring: bool, is_update: bool, is_choice: bool) {
+    info!("HOOK_TRACE: Executing GotoBlock in StoryTimelineController.rs");
     std::hint::black_box(concat!(file!(), line!()).as_ptr());
     if Hachimi::instance().config.load().enable_ipc {
         let mut guard = CURRENT.lock().unwrap();
