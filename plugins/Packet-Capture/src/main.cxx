@@ -7,6 +7,10 @@
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <mutex>
+#include <deque>
+#include <atomic>
 #include "json.hpp"
 
 using json = nlohmann::json;
@@ -22,8 +26,11 @@ typedef void* (*il2cpp_get_class_t)(void* image, const char* namespaze, const ch
 typedef void* (*il2cpp_get_method_t)(void* klass, const char* name, int argsCount);
 typedef void* (*il2cpp_get_method_addr_t)(void* klass, const char* name, int argsCount);
 
+typedef void* (*il2cpp_string_new_t)(const char* text);
+typedef uint16_t* (*il2cpp_string_chars_t)(void* str);
+typedef int32_t (*il2cpp_string_length_t)(void* str);
+
 typedef void (*hachimi_log_t)(int level, const char* tag, const char* message);
-typedef void (*hachimi_register_on_game_initialized_t)(void (*callback)());
 
 static hachimi_log_t g_log = nullptr;
 static hachimi_instance_t g_hachimi_instance = nullptr;
@@ -35,8 +42,16 @@ static il2cpp_get_class_t g_get_class = nullptr;
 static il2cpp_get_method_t g_get_method = nullptr;
 static il2cpp_get_method_addr_t g_get_method_addr = nullptr;
 
+static il2cpp_string_new_t g_string_new = nullptr;
+static il2cpp_string_chars_t g_string_chars = nullptr;
+static il2cpp_string_length_t g_string_length = nullptr;
+
 static std::string g_outputDir;
-static int g_seq = 0;
+
+static thread_local std::vector<uint8_t> t_last_raw_request;
+static std::mutex g_queue_mutex;
+static std::deque<std::string> g_url_queue;
+static std::atomic<int> g_req_seq(0);
 
 void Log(const std::string& msg) {
     if (!g_outputDir.empty()) {
@@ -53,8 +68,6 @@ std::string GetPackageName() {
     return "jp.co.cygames.umamusume";
 }
 
-#include <sys/stat.h>
-
 void EnsureDirectory(const std::string& path) {
     std::string current = "";
     for (char c : path) {
@@ -66,48 +79,30 @@ void EnsureDirectory(const std::string& path) {
     mkdir(current.c_str(), 0777);
 }
 
-void DumpByteArray(const std::string& prefix, void* arrayObj) {
-    if (!arrayObj) {
-        Log(prefix + ": null array pointer");
-        return;
-    }
-    int32_t length = *(int32_t*)((char*)arrayObj + sizeof(void*) * 3);
-    if (length <= 0 || length > (16 * 1024 * 1024)) {
-        Log(prefix + ": invalid length " + std::to_string(length));
-        return;
-    }
-    
-    char* data = (char*)arrayObj + sizeof(void*) * 4;
-    
-    g_seq++;
+void DumpBuffer(const std::string& name, const void* data, size_t length) {
+    if (!data || length == 0) return;
     
     try {
         std::vector<uint8_t> v((uint8_t*)data, (uint8_t*)data + length);
         json j = json::from_msgpack(v, true, false);
         
         if (!j.is_discarded()) {
-            char filename[256];
-            snprintf(filename, sizeof(filename), "%s/%s_%05d.json", g_outputDir.c_str(), prefix.c_str(), g_seq);
-            
+            std::string filename = g_outputDir + "/" + name + ".json";
             std::ofstream out(filename);
             if (out.is_open()) {
                 out << j.dump(4);
                 out.close();
             }
             return;
-        } else {
-            Log("msgpack parse discarded. Falling back to .bin.");
         }
-    } catch (const std::exception& e) {
-        Log("Exception during msgpack parsing: " + std::string(e.what()));
+    } catch (...) {
+        // Fallback to bin
     }
     
-    char filename[256];
-    snprintf(filename, sizeof(filename), "%s/%s_%05d.bin", g_outputDir.c_str(), prefix.c_str(), g_seq);
-    
+    std::string filename = g_outputDir + "/" + name + ".bin";
     std::ofstream out(filename, std::ios::binary);
     if (out.is_open()) {
-        out.write(data, length);
+        out.write((const char*)data, length);
         out.close();
     }
 }
@@ -115,93 +110,139 @@ void DumpByteArray(const std::string& prefix, void* arrayObj) {
 // Trampolines
 typedef void* (*compress_req_t)(void* body, void* method_info);
 typedef void* (*decompress_resp_t)(void* response, void* method_info);
+typedef void* (*post_t)(void* this_ptr, void* url, void* postData, void* headers, void* method_info);
 
 static compress_req_t o_CompressRequest = nullptr;
 static decompress_resp_t o_DecompressResponse = nullptr;
+static post_t o_Post = nullptr;
 
 static void* h_CompressRequest(void* body, void* method_info) {
-    DumpByteArray("request", body);
+    if (body) {
+        int32_t length = *(int32_t*)((char*)body + sizeof(void*) * 3);
+        char* data = (char*)body + sizeof(void*) * 4;
+        if (length > 0 && length < (16 * 1024 * 1024)) {
+            t_last_raw_request.assign((uint8_t*)data, (uint8_t*)data + length);
+        }
+    }
     return o_CompressRequest(body, method_info);
 }
 
 static void* h_DecompressResponse(void* response, void* method_info) {
     void* ret = o_DecompressResponse(response, method_info);
-    DumpByteArray("response", ret);
+    if (ret) {
+        int32_t length = *(int32_t*)((char*)ret + sizeof(void*) * 3);
+        char* data = (char*)ret + sizeof(void*) * 4;
+        if (length > 0 && length < (16 * 1024 * 1024)) {
+            std::string prefix = "unknown";
+            {
+                std::lock_guard<std::mutex> lock(g_queue_mutex);
+                if (!g_url_queue.empty()) {
+                    prefix = g_url_queue.front();
+                    g_url_queue.pop_front();
+                }
+            }
+            DumpBuffer(prefix + "_resp", data, length);
+        }
+    }
     return ret;
 }
 
-void OnGameInitialized() {
-    Log("Game initialized, setting up network hooks...");
-    
-    void* image = g_get_assembly_image("umamusume.dll");
-    if (!image) {
-        Log("Failed to get umamusume.dll image");
-        return;
-    }
-    
-    void* klass = g_get_class(image, "Gallop", "HttpHelper");
-    if (!klass) {
-        Log("Failed to get Gallop.HttpHelper");
-        return;
-    }
-    
-    void* m_compress = g_get_method(klass, "CompressRequest", 1);
-    void* m_decompress = g_get_method(klass, "DecompressResponse", 1);
-    
-    if (!m_compress || !m_decompress) {
-        Log("Failed to find CompressRequest or DecompressResponse by exact name.");
-        Log("Attempting to dump all methods in Gallop.HttpHelper to see if names differ:");
-        
-        void* handle = dlopen("libil2cpp.so", RTLD_LAZY);
-        if (handle) {
-            typedef void* (*il2cpp_class_get_methods_t)(void* klass, void** iter);
-            typedef const char* (*il2cpp_method_get_name_t)(void* method);
-            
-            auto class_get_methods = (il2cpp_class_get_methods_t)dlsym(handle, "il2cpp_class_get_methods");
-            auto method_get_name = (il2cpp_method_get_name_t)dlsym(handle, "il2cpp_method_get_name");
-            
-            if (class_get_methods && method_get_name) {
-                void* iter = nullptr;
-                void* method = nullptr;
-                while ((method = class_get_methods(klass, &iter)) != nullptr) {
-                    const char* name = method_get_name(method);
-                    if (name) {
-                        Log(std::string("Method found: ") + name);
-                    }
-                }
-            } else {
-                Log("Failed to resolve method enumeration functions from libil2cpp.so.");
-            }
-            dlclose(handle);
-        } else {
-            Log("Failed to dlopen libil2cpp.so.");
+static void* h_Post(void* this_ptr, void* url_str, void* postData, void* headers, void* method_info) {
+    std::string s_url;
+    if (url_str && g_string_chars && g_string_length) {
+        int32_t len = g_string_length(url_str);
+        uint16_t* chars = g_string_chars(url_str);
+        for (int i = 0; i < len; ++i) {
+            if (chars[i] < 0x80) s_url += (char)chars[i];
         }
-        return;
     }
     
-    void* a_compress = g_get_method_addr(klass, "CompressRequest", 1);
-    void* a_decompress = g_get_method_addr(klass, "DecompressResponse", 1);
-    
-    if (!a_compress || !a_decompress) {
-        Log("Failed to get method addresses");
-        return;
+    std::string path_name = "unknown";
+    size_t p = s_url.find("/umamusume/");
+    if (p != std::string::npos) {
+        path_name = s_url.substr(p + 11); // skip /umamusume/
+        for (char& c : path_name) {
+            if (c == '/' || c == '?' || c == '&' || c == '=') c = '_';
+        }
     }
     
-    void* hachimi = g_hachimi_instance();
-    void* interceptor = g_hachimi_get_interceptor(hachimi);
+    int seq = ++g_req_seq;
+    char prefix[256];
+    snprintf(prefix, sizeof(prefix), "%05d_%s", seq, path_name.c_str());
+    std::string final_prefix = prefix;
     
-    o_CompressRequest = (compress_req_t)g_interceptor_hook(interceptor, a_compress, (void*)h_CompressRequest);
-    o_DecompressResponse = (decompress_resp_t)g_interceptor_hook(interceptor, a_decompress, (void*)h_DecompressResponse);
+    Log("Captured POST: " + s_url);
     
-    if (o_CompressRequest && o_DecompressResponse) {
-        Log("Network Hooks installed successfully!");
-    } else {
-        Log("Failed to install network hooks via Hachimi Interceptor.");
+    // Dump the saved raw request
+    if (!t_last_raw_request.empty()) {
+        DumpBuffer(final_prefix + "_req", t_last_raw_request.data(), t_last_raw_request.size());
+        t_last_raw_request.clear();
+    }
+    
+    // Save for response
+    {
+        std::lock_guard<std::mutex> lock(g_queue_mutex);
+        g_url_queue.push_back(final_prefix);
+    }
+    
+    return o_Post(this_ptr, url_str, postData, headers, method_info);
+}
+
+void OnGameInitialized() {
+    Log("Game initialized, setting up capture hooks...");
+    
+    void* handle = dlopen("libil2cpp.so", RTLD_LAZY);
+    if (handle) {
+        g_string_new = (il2cpp_string_new_t)dlsym(handle, "il2cpp_string_new");
+        g_string_chars = (il2cpp_string_chars_t)dlsym(handle, "il2cpp_string_chars");
+        g_string_length = (il2cpp_string_length_t)dlsym(handle, "il2cpp_string_length");
+        // intentionally do NOT dlclose
+    }
+
+    if (!g_string_new || !g_string_chars || !g_string_length) {
+        Log("Failed to resolve string manipulation functions from libil2cpp.so");
+    }
+
+    void* image_uma = g_get_assembly_image("umamusume.dll");
+    if (image_uma) {
+        void* klass_http = g_get_class(image_uma, "Gallop", "HttpHelper");
+        if (klass_http) {
+            void* a_compress = g_get_method_addr(klass_http, "CompressRequest", 1);
+            void* a_decompress = g_get_method_addr(klass_http, "DecompressResponse", 1);
+            
+            if (a_compress && a_decompress) {
+                void* hachimi = g_hachimi_instance();
+                void* interceptor = g_hachimi_get_interceptor(hachimi);
+                o_CompressRequest = (compress_req_t)g_interceptor_hook(interceptor, a_compress, (void*)h_CompressRequest);
+                o_DecompressResponse = (decompress_resp_t)g_interceptor_hook(interceptor, a_decompress, (void*)h_DecompressResponse);
+                Log("Gallop.HttpHelper hooks installed.");
+            }
+        }
+    }
+    
+    void* image_cute = g_get_assembly_image("Cute.Http.Assembly.dll");
+    if (image_cute) {
+        void* klass_www = g_get_class(image_cute, "Cute.Http", "WWWRequest");
+        if (klass_www) {
+            void* a_post = g_get_method_addr(klass_www, "Post", 3);
+            if (a_post) {
+                void* hachimi = g_hachimi_instance();
+                void* interceptor = g_hachimi_get_interceptor(hachimi);
+                o_Post = (post_t)g_interceptor_hook(interceptor, a_post, (void*)h_Post);
+                Log("Cute.Http.WWWRequest.Post hook installed.");
+            }
+        }
     }
 }
 
 void* HookThread(void*) {
-    usleep(8000000);
+    while (true) {
+        if (g_get_assembly_image) {
+            void* image_uma = g_get_assembly_image("umamusume.dll");
+            if (image_uma) break;
+        }
+        usleep(100000); // 100ms wait
+    }
     OnGameInitialized();
     return nullptr;
 }
@@ -217,9 +258,6 @@ extern "C" bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
     g_get_method = (il2cpp_get_method_t)get_api("il2cpp_get_method");
     g_get_method_addr = (il2cpp_get_method_addr_t)get_api("il2cpp_get_method_addr");
     
-    hachimi_register_on_game_initialized_t register_init = 
-        (hachimi_register_on_game_initialized_t)get_api("hachimi_register_on_game_initialized");
-
     std::string pkg = GetPackageName();
     g_outputDir = "/sdcard/Android/media/" + pkg + "/hachimi/PacketCapture";
     EnsureDirectory(g_outputDir);
