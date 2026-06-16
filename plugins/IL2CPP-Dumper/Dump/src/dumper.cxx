@@ -98,11 +98,17 @@ Dumper::CacheImage( const Il2CppImage & img ) const {
 
         if (i % 500 == 0) Log("  processing class " + std::to_string(i) + "/" + std::to_string(total) + ": " + cc.name);
 
+        if (i % 500 == 0) Log("  -> GetAttributes");
         cc.attributes = cls.GetAttributes( );
+        if (i % 500 == 0) Log("  -> GetFields");
         cc.fields = cls.GetFields( );
+        if (i % 500 == 0) Log("  -> GetMethods");
         cc.methods = cls.GetMethods( );
+        if (i % 500 == 0) Log("  -> GetProperties");
         cc.properties = cls.GetProperties( );
+        if (i % 500 == 0) Log("  -> GetEvents");
         cc.events = cls.GetEvents( );
+        if (i % 500 == 0) Log("  -> Done");
 
         ns_classes [ cc.ns ].emplace_back( std::move( cc ) );
     }
