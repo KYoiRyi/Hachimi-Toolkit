@@ -39,7 +39,6 @@ static std::string g_outputDir;
 static int g_seq = 0;
 
 void Log(const std::string& msg) {
-    if (g_log) g_log(2, "PacketCapture", msg.c_str());
     if (!g_outputDir.empty()) {
         std::string logPath = g_outputDir + "/capture.log";
         std::ofstream ofs(logPath, std::ios::out | std::ios::app);
