@@ -174,7 +174,17 @@ void OnGameInitialized() {
     
     LoadConfig();
 
+    void* handle = dlopen("libil2cpp.so", RTLD_LAZY);
+    if (handle) {
+        g_string_new = (il2cpp_string_new_t)dlsym(handle, "il2cpp_string_new");
+        g_string_chars = (il2cpp_string_chars_t)dlsym(handle, "il2cpp_string_chars");
+        g_string_length = (il2cpp_string_length_t)dlsym(handle, "il2cpp_string_length");
+        dlclose(handle);
+    }
 
+    if (!g_string_new || !g_string_chars || !g_string_length) {
+        Log("Failed to resolve string manipulation functions from libil2cpp.so");
+    }
     
     // 1. Hook Compress/Decompress
     void* image_uma = g_get_assembly_image("umamusume.dll");
@@ -249,10 +259,6 @@ extern "C" bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
     g_get_class = (il2cpp_get_class_t)get_api("il2cpp_get_class");
     g_get_method = (il2cpp_get_method_t)get_api("il2cpp_get_method");
     g_get_method_addr = (il2cpp_get_method_addr_t)get_api("il2cpp_get_method_addr");
-    
-    g_string_new = (il2cpp_string_new_t)get_api("il2cpp_string_new");
-    g_string_chars = (il2cpp_string_chars_t)get_api("il2cpp_string_chars");
-    g_string_length = (il2cpp_string_length_t)get_api("il2cpp_string_length");
     
     std::string pkg = GetPackageName();
     g_outputDir = "/sdcard/Android/media/" + pkg + "/hachimi/UmaProxy";
