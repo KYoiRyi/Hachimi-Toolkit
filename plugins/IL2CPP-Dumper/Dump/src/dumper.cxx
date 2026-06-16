@@ -29,16 +29,17 @@ Dumper::Dumper( ) {
     }
 
     for ( size_t i = 0; i < count; ++i ) {
-        void * ass = assemblies [ i ];
-        if ( !ass )
+        void * ass = nullptr;
+        if (!SafeReadT(&assemblies[i], ass) || !ass)
             continue;
 
         void * img = api::assembly_get_image( ass );
         if ( !img )
             continue;
 
-        const char * name = api::image_get_name( img );
-        if ( !name || !*name )
+        const char * nameRaw = api::image_get_name( img );
+        std::string name;
+        if ( !SafeReadString(nameRaw, name) || name.empty() )
             continue;
 
         images.emplace_back( img );
@@ -56,27 +57,33 @@ Dumper::CacheImage( const Il2CppImage & img ) const {
             continue;
 
         const char * rawName = cls.GetName( );
-        if ( !rawName || !*rawName )
+        std::string name;
+        if ( !SafeReadString(rawName, name) || name.empty() )
             continue;
-
-        std::string name = rawName;
 
         CachedClass cc;
         const char * nsRaw = cls.GetNamespace( );
+        std::string nsStr;
+        SafeReadString(nsRaw, nsStr);
+        
         cc.typeToken = cls.GetTypeToken( );
         cc.flags = cls.GetFlags( );
         cc.instanceSize = cls.InstanceSize( );
         cc.name = std::move( name );
-        cc.ns = nsRaw ? nsRaw : "";
+        cc.ns = nsStr;
         cc.isInterface = cls.IsInterface( );
         cc.isStruct = cls.IsValueType( ) && !cc.isInterface;
 
         auto fqName = [ ] ( const Il2CppClass & c ) -> std::string {
-            const char * n = c.GetName( );
-            if ( !n || !*n )
+            const char * nRaw = c.GetName( );
+            std::string n;
+            if ( !SafeReadString(nRaw, n) || n.empty() )
                 return "";
-            const char * ns = c.GetNamespace( );
-            return ( ns && *ns ) ? std::string( ns ) + "." + n : std::string( n );
+            const char * nsRaw = c.GetNamespace( );
+            std::string ns;
+            if ( SafeReadString(nsRaw, ns) && !ns.empty() )
+                return ns + "." + n;
+            return n;
             };
 
         auto parent = cls.GetParent( );
@@ -88,6 +95,8 @@ Dumper::CacheImage( const Il2CppImage & img ) const {
             if ( !fq.empty( ) )
                 cc.interfaces.emplace_back( std::move( fq ) );
         }
+
+        if (i % 500 == 0) Log("  processing class " + std::to_string(i) + "/" + std::to_string(total) + ": " + cc.name);
 
         cc.attributes = cls.GetAttributes( );
         cc.fields = cls.GetFields( );

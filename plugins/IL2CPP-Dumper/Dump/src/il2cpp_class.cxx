@@ -30,15 +30,17 @@ static std::vector<std::string> ParseAttrCache( void * cache ) {
             if ( !SafeReadT( attr, attrKlass ) || !attrKlass )
                 continue;
 
-            const char * n =
+            const char * nRaw =
                 api::class_get_name ? api::class_get_name( attrKlass ) : nullptr;
-            const char * ns = api::class_get_namespace
+            const char * nsRaw = api::class_get_namespace
                 ? api::class_get_namespace( attrKlass )
                 : nullptr;
-            if ( !n || !*n )
-                continue;
+            
+            std::string n, nsStr;
+            if (!SafeReadString(nRaw, n) || n.empty()) continue;
+            SafeReadString(nsRaw, nsStr);
 
-            std::string fq = ( ns && *ns ) ? std::string( ns ) + "." + n : std::string( n );
+            std::string fq = nsStr.empty() ? n : nsStr + "." + n;
 
             const std::string suffix = "Attribute";
 
@@ -64,8 +66,10 @@ int32_t Il2CppClass::InstanceSize( ) const {
 static std::string MethodName( void * m ) {
     if ( !m || !api::method_get_name )
         return "";
-    const char * n = api::method_get_name( m );
-    return n ? n : "";
+    const char * nRaw = api::method_get_name( m );
+    std::string n;
+    if (SafeReadString(nRaw, n)) return n;
+    return "";
 }
 
 std::vector<PropertyData> Il2CppClass::GetProperties( ) const {
@@ -77,8 +81,9 @@ std::vector<PropertyData> Il2CppClass::GetProperties( ) const {
     while ( void * p = api::class_get_properties( klass, &iter ) ) {
         if ( !p )
             break;
-        const char * pn = api::property_get_name( p );
-        if ( !pn || !*pn )
+        const char * pnRaw = api::property_get_name( p );
+        std::string pn;
+        if ( !SafeReadString(pnRaw, pn) || pn.empty() )
             continue;
 
         PropertyData pd;
@@ -105,8 +110,9 @@ std::vector<EventData> Il2CppClass::GetEvents( ) const {
         while ( void * e = api::class_get_events( klass, &iter ) ) {
             if ( !e )
                 break;
-            const char * en = api::event_get_name( e );
-            if ( !en || !*en )
+            const char * enRaw = api::event_get_name( e );
+            std::string en;
+            if ( !SafeReadString(enRaw, en) || en.empty() )
                 continue;
 
             EventData ed;
@@ -133,10 +139,10 @@ std::vector<EventData> Il2CppClass::GetEvents( ) const {
     while ( auto m = api::class_get_methods( klass, &iter ) ) {
         if ( !m )
             break;
-        const char * n = api::method_get_name( m );
-        if ( !n )
+        const char * nRaw = api::method_get_name( m );
+        std::string s;
+        if ( !SafeReadString(nRaw, s) || s.empty() )
             continue;
-        std::string s = n;
         if ( s.rfind( "add_", 0 ) == 0 )
             adds.push_back( s.substr( 4 ) );
         else if ( s.rfind( "remove_", 0 ) == 0 )
@@ -177,12 +183,17 @@ std::vector<std::string> Il2CppClass::GetAttributes( ) const {
 }
 
 const char * Il2CppClass::GetName( ) const {
-    return api::class_get_name && klass ? api::class_get_name( klass ) : "Unknown";
+    const char* n = api::class_get_name && klass ? api::class_get_name( klass ) : "Unknown";
+    static std::string safe_n;
+    if (SafeReadString(n, safe_n)) return safe_n.c_str();
+    return "Unknown";
 }
 
 const char * Il2CppClass::GetNamespace( ) const {
-    return api::class_get_namespace && klass ? api::class_get_namespace( klass )
-        : "";
+    const char* ns = api::class_get_namespace && klass ? api::class_get_namespace( klass ) : "";
+    static std::string safe_ns;
+    if (SafeReadString(ns, safe_ns)) return safe_ns.c_str();
+    return "";
 }
 
 bool Il2CppClass::IsValueType( ) const {
@@ -238,22 +249,29 @@ std::vector<FieldData> Il2CppClass::GetFields( ) const {
         if ( !field )
             break;
 
-        const char * name =
+        const char * nRaw =
             api::field_get_name ? api::field_get_name( field ) : nullptr;
-        if ( !name || !*name )
+        std::string n;
+        if ( !SafeReadString(nRaw, n) || n.empty() )
             continue;
 
         FieldData fd;
+        fd.name = n;
         fd.flags = api::field_get_flags ? api::field_get_flags( field ) : 0;
         fd.offset = api::field_get_offset ? api::field_get_offset( field ) : -1;
-        fd.name = name;
         fd.token = api::field_get_token ? api::field_get_token( field ) : 0;
         fd.raw = field;
 
-        void * ftype = api::field_get_type ? api::field_get_type( field ) : nullptr;
-        const char * tname =
+        void * ftype =
+            api::field_get_type ? api::field_get_type( field ) : nullptr;
+        const char * tnameRaw =
             ftype && api::type_get_name ? api::type_get_name( ftype ) : nullptr;
-        fd.type = tname ? tname : "object";
+        std::string tname;
+        if (SafeReadString(tnameRaw, tname) && !tname.empty()) {
+            fd.type = tname;
+        } else {
+            fd.type = "object";
+        }
 
         if ( api::custom_attrs_from_field ) {
             void * cache = nullptr;
@@ -284,9 +302,10 @@ std::vector<MethodData> Il2CppClass::GetMethods( ) const {
         if ( !method )
             break;
 
-        const char * mname =
+        const char * mnameRaw =
             api::method_get_name ? api::method_get_name( method ) : nullptr;
-        if ( !mname || !*mname )
+        std::string mname;
+        if ( !SafeReadString(mnameRaw, mname) || mname.empty() )
             continue;
 
         MethodData md;
@@ -302,9 +321,14 @@ std::vector<MethodData> Il2CppClass::GetMethods( ) const {
         void * rtype = api::method_get_return_type
             ? api::method_get_return_type( method )
             : nullptr;
-        const char * rtname =
+        const char * rtnameRaw =
             rtype && api::type_get_name ? api::type_get_name( rtype ) : nullptr;
-        md.returnType = rtname ? rtname : "void";
+        std::string rtname;
+        if (SafeReadString(rtnameRaw, rtname) && !rtname.empty()) {
+            md.returnType = rtname;
+        } else {
+            md.returnType = "void";
+        }
 
         uint32_t pcount =
             api::method_get_param_count ? api::method_get_param_count( method ) : 0;
@@ -313,17 +337,21 @@ std::vector<MethodData> Il2CppClass::GetMethods( ) const {
         for ( uint32_t i = 0; i < pcount; ++i ) {
             const void * ptype =
                 api::method_get_param ? api::method_get_param( method, i ) : nullptr;
-            const char * ptname = ptype && api::type_get_name
+            const char * ptnameRaw = ptype && api::type_get_name
                 ? api::type_get_name( const_cast< void * >( ptype ) )
                 : nullptr;
 
-            const char * pname = api::method_get_param_name
+            const char * pnameRaw = api::method_get_param_name
                 ? api::method_get_param_name( method, i )
                 : nullptr;
 
+            std::string ptname, pname;
+            if (!SafeReadString(ptnameRaw, ptname) || ptname.empty()) ptname = "object";
+            if (!SafeReadString(pnameRaw, pname) || pname.empty()) pname = "arg" + std::to_string( i );
+
             ParamData pd;
-            pd.type = ptname ? ptname : "object";
-            pd.name = pname ? pname : ( "arg" + std::to_string( i ) );
+            pd.type = ptname;
+            pd.name = pname;
             md.params.emplace_back( std::move( pd ) );
         }
 

@@ -40,6 +40,18 @@ inline bool SafeReadT(const void* addr, T& outValue) {
     return SafeRead(addr, &outValue, sizeof(T));
 }
 
+inline bool SafeReadString(const char* ptr, std::string& out) {
+    if (!ptr) return false;
+    out.clear();
+    char c;
+    for (int i = 0; i < 4096; i++) {
+        if (!SafeRead(ptr + i, &c, 1)) return false;
+        if (c == '\0') return true;
+        out += c;
+    }
+    return false; // Too long, probably garbage
+}
+
 typedef uint32_t DWORD;
 typedef uint64_t DWORDLONG;
 typedef void* HANDLE;
