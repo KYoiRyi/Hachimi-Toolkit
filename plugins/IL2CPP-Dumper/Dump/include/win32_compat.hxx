@@ -40,6 +40,13 @@ inline bool SafeReadT(const void* addr, T& outValue) {
     return SafeRead(addr, &outValue, sizeof(T));
 }
 
+inline bool IsValidPointer(const void* ptr, size_t size = 32) {
+    if (!ptr) return false;
+    char buf[128];
+    if (size > sizeof(buf)) size = sizeof(buf);
+    return SafeRead(ptr, buf, size);
+}
+
 inline bool SafeReadString(const char* ptr, std::string& out) {
     if (!ptr) return false;
     out.clear();
