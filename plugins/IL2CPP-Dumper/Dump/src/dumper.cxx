@@ -512,33 +512,40 @@ static bool ReadLiteralInt( const FieldData & f, int64_t & out ) {
     if ( !data )
         return false;
 
-    __try {
-        if ( f.type == "System.Int32" || f.type == "int" )
-            out = *reinterpret_cast< int32_t * >( data );
-        else if ( f.type == "System.UInt32" || f.type == "uint" )
-            out = *reinterpret_cast< uint32_t * >( data );
-        else if ( f.type == "System.Int64" || f.type == "long" )
-            out = *reinterpret_cast< int64_t * >( data );
-        else if ( f.type == "System.UInt64" || f.type == "ulong" )
-            out = static_cast< int64_t >( *reinterpret_cast< uint64_t * >( data ) );
-        else if ( f.type == "System.Int16" || f.type == "short" )
-            out = *reinterpret_cast< int16_t * >( data );
-        else if ( f.type == "System.UInt16" || f.type == "ushort" )
-            out = *reinterpret_cast< uint16_t * >( data );
-        else if ( f.type == "System.SByte" || f.type == "sbyte" )
-            out = *reinterpret_cast< int8_t * >( data );
-        else if ( f.type == "System.Byte" || f.type == "byte" )
-            out = *reinterpret_cast< uint8_t * >( data );
-        else if ( f.type == "System.Boolean" || f.type == "bool" )
-            out = *reinterpret_cast< uint8_t * >( data );
-        else
-            return false;
+    if ( f.type == "System.Int32" || f.type == "int" ) {
+        int32_t val = 0;
+        if (SafeReadT(data, val)) { out = val; return true; }
     }
-    __except ( EXCEPTION_EXECUTE_HANDLER ) {
-        return false;
+    else if ( f.type == "System.UInt32" || f.type == "uint" ) {
+        uint32_t val = 0;
+        if (SafeReadT(data, val)) { out = val; return true; }
+    }
+    else if ( f.type == "System.Int64" || f.type == "long" ) {
+        int64_t val = 0;
+        if (SafeReadT(data, val)) { out = val; return true; }
+    }
+    else if ( f.type == "System.UInt64" || f.type == "ulong" ) {
+        uint64_t val = 0;
+        if (SafeReadT(data, val)) { out = static_cast<int64_t>(val); return true; }
+    }
+    else if ( f.type == "System.Int16" || f.type == "short" ) {
+        int16_t val = 0;
+        if (SafeReadT(data, val)) { out = val; return true; }
+    }
+    else if ( f.type == "System.UInt16" || f.type == "ushort" ) {
+        uint16_t val = 0;
+        if (SafeReadT(data, val)) { out = val; return true; }
+    }
+    else if ( f.type == "System.SByte" || f.type == "sbyte" ) {
+        int8_t val = 0;
+        if (SafeReadT(data, val)) { out = val; return true; }
+    }
+    else if ( f.type == "System.Byte" || f.type == "byte" || f.type == "System.Boolean" || f.type == "bool" ) {
+        uint8_t val = 0;
+        if (SafeReadT(data, val)) { out = val; return true; }
     }
 
-    return true;
+    return false;
 }
 
 static std::string FormatFieldOffset( const FieldData & f ) {
@@ -567,24 +574,22 @@ static std::string FormatFieldOffset( const FieldData & f ) {
 static bool ReadIl2CppString( void * strPtr, std::string & out ) {
     if ( !strPtr )
         return false;
-    __try {
-        int32_t len =
-            *reinterpret_cast< int32_t * >( reinterpret_cast< char * >( strPtr ) + 16 );
-        if ( len < 0 || len > 65536 )
-            return false;
-        wchar_t * chars =
-            reinterpret_cast< wchar_t * >( reinterpret_cast< char * >( strPtr ) + 20 );
-
-        int sz = WideCharToMultiByte( CP_UTF8, 0, chars, len, nullptr, 0, nullptr,
-            nullptr );
-        if ( sz <= 0 || sz > 1 << 20 )
-            return false;
-        out.assign( static_cast< size_t >( sz ), '\0' );
-        WideCharToMultiByte( CP_UTF8, 0, chars, len, &out [ 0 ], sz, nullptr, nullptr );
-    }
-    __except ( EXCEPTION_EXECUTE_HANDLER ) {
+    int32_t len = 0;
+    if (!SafeReadT(reinterpret_cast< char * >( strPtr ) + 16, len)) return false;
+    if ( len < 0 || len > 65536 )
+        return false;
+    
+    std::vector<wchar_t> charsBuffer(len + 1, 0);
+    if (!SafeRead(reinterpret_cast< char * >( strPtr ) + 20, charsBuffer.data(), len * sizeof(wchar_t))) {
         return false;
     }
+
+    int sz = WideCharToMultiByte( CP_UTF8, 0, charsBuffer.data(), len, nullptr, 0, nullptr,
+        nullptr );
+    if ( sz <= 0 || sz > 1 << 20 )
+        return false;
+    out.assign( static_cast< size_t >( sz ), '\0' );
+    WideCharToMultiByte( CP_UTF8, 0, charsBuffer.data(), len, &out [ 0 ], sz, nullptr, nullptr );
     return true;
 }
 
@@ -663,7 +668,11 @@ void Dumper::DumpStringLiterals(
                     wroteHeader = true;
                 }
                 std::string fq = ns.empty( ) ? cls.name : ns + "." + cls.name;
-                out << fq << "::" << f.name << " = \"" << EscapeStr( utf8 ) << "\"\n";
+                __try {
+                    out << fq << "::" << f.name << " = \"" << EscapeStr( utf8 ) << "\"\n";
+                } __except ( EXCEPTION_EXECUTE_HANDLER ) {
+                    continue;
+                }
                 ++counter;
             }
         }

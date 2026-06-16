@@ -12,6 +12,34 @@
 #define EXCEPTION_EXECUTE_HANDLER 1
 #define __except(x) catch(...)
 
+#include <fcntl.h>
+#include <string.h>
+
+inline bool SafeRead(const void* addr, void* buf, size_t size) {
+    static int g_safe_pipe[2] = {-1, -1};
+    if (g_safe_pipe[0] == -1) {
+        if (pipe(g_safe_pipe) < 0) return false;
+        fcntl(g_safe_pipe[0], F_SETFL, O_NONBLOCK);
+        fcntl(g_safe_pipe[1], F_SETFL, O_NONBLOCK);
+    }
+    
+    // Clear pipe if full or leftover
+    char discard[1024];
+    while (read(g_safe_pipe[0], discard, sizeof(discard)) > 0) {}
+
+    ssize_t written = write(g_safe_pipe[1], addr, size);
+    if (written == (ssize_t)size) {
+        ssize_t r = read(g_safe_pipe[0], buf, size);
+        return r == (ssize_t)size;
+    }
+    return false;
+}
+
+template<typename T>
+inline bool SafeReadT(const void* addr, T& outValue) {
+    return SafeRead(addr, &outValue, sizeof(T));
+}
+
 typedef uint32_t DWORD;
 typedef uint64_t DWORDLONG;
 typedef void* HANDLE;
