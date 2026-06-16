@@ -144,6 +144,32 @@ static void* h_PushErrorCommon(void* this_ptr, void* message, void* headerMessag
     return o_PushErrorCommon(this_ptr, message, headerMessage, onClose, popupType, method_info);
 }
 
+typedef void* (*debug_log_error_t)(void* messageObj, void* method_info);
+static debug_log_error_t o_DebugLogError = nullptr;
+
+static void* h_DebugLogError(void* messageObj, void* method_info) {
+    if (messageObj) {
+        void* klass = *(void**)messageObj;
+        void* image = *(void**)((char*)klass + 0x0); // Image ptr is at 0x0 of class in some versions, actually let's just not risk it.
+        
+        Log("--- UNITY DEBUG.LOGERROR ---");
+        Log("An error was logged. Object Address: " + std::to_string((uintptr_t)messageObj));
+        
+        // We attempt to read it as string, but cautiously.
+        try {
+            int32_t len = g_string_length(messageObj);
+            if (len >= 0 && len < 10000) {
+                std::string msg = ReadIl2CppString(messageObj);
+                Log(msg);
+            } else {
+                Log("(Message object is not a valid string or too long)");
+            }
+        } catch(...) {}
+        Log("----------------------------");
+    }
+    return o_DebugLogError(messageObj, method_info);
+}
+
 void HookMethod(void* interceptor, void* klass, const char* methodName, int argsCount, void* hookFunc, void** origFuncOut) {
     void* method = g_get_method(klass, methodName, argsCount);
     if (!method) {
@@ -190,6 +216,19 @@ void OnGameInitialized() {
         HookMethod(interceptor, dialogManagerKlass, "PushErrorCommon", 4, (void*)h_PushErrorCommon, (void**)&o_PushErrorCommon);
     } else {
         Log("Failed to get Gallop.DialogManager");
+    }
+    
+    // UnityEngine.Debug.LogError
+    void* coreModuleImage = g_get_assembly_image("UnityEngine.CoreModule.dll");
+    if (coreModuleImage) {
+        void* debugKlass = g_get_class(coreModuleImage, "UnityEngine", "Debug");
+        if (debugKlass) {
+            HookMethod(interceptor, debugKlass, "LogError", 1, (void*)h_DebugLogError, (void**)&o_DebugLogError);
+        } else {
+            Log("Failed to get UnityEngine.Debug");
+        }
+    } else {
+        Log("Failed to get UnityEngine.CoreModule.dll");
     }
 }
 
