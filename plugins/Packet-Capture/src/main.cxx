@@ -40,6 +40,14 @@ static int g_seq = 0;
 
 void Log(const std::string& msg) {
     if (g_log) g_log(2, "PacketCapture", msg.c_str());
+    if (!g_outputDir.empty()) {
+        std::string logPath = g_outputDir + "/capture.log";
+        std::ofstream ofs(logPath, std::ios::out | std::ios::app);
+        if (ofs.is_open()) {
+            ofs << msg << "\n";
+            ofs.close();
+        }
+    }
 }
 
 std::string GetPackageName() {
@@ -132,7 +140,33 @@ void OnGameInitialized() {
     void* m_decompress = g_get_method(klass, "DecompressResponse", 1);
     
     if (!m_compress || !m_decompress) {
-        Log("Failed to find CompressRequest or DecompressResponse");
+        Log("Failed to find CompressRequest or DecompressResponse by exact name.");
+        Log("Attempting to dump all methods in Gallop.HttpHelper to see if names differ:");
+        
+        void* handle = dlopen("libil2cpp.so", RTLD_LAZY);
+        if (handle) {
+            typedef void* (*il2cpp_class_get_methods_t)(void* klass, void** iter);
+            typedef const char* (*il2cpp_method_get_name_t)(void* method);
+            
+            auto class_get_methods = (il2cpp_class_get_methods_t)dlsym(handle, "il2cpp_class_get_methods");
+            auto method_get_name = (il2cpp_method_get_name_t)dlsym(handle, "il2cpp_method_get_name");
+            
+            if (class_get_methods && method_get_name) {
+                void* iter = nullptr;
+                void* method = nullptr;
+                while ((method = class_get_methods(klass, &iter)) != nullptr) {
+                    const char* name = method_get_name(method);
+                    if (name) {
+                        Log(std::string("Method found: ") + name);
+                    }
+                }
+            } else {
+                Log("Failed to resolve method enumeration functions from libil2cpp.so.");
+            }
+            dlclose(handle);
+        } else {
+            Log("Failed to dlopen libil2cpp.so.");
+        }
         return;
     }
     
