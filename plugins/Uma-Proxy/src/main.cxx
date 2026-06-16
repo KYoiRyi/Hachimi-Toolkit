@@ -249,7 +249,7 @@ void* HookThread(void*) {
             void* image_uma = g_get_assembly_image("umamusume.dll");
             if (image_uma) break;
         }
-        usleep(100000); // 100ms wait
+        usleep(1000); // 1ms super fast poll to prevent missing initial requests
     }
     OnGameInitialized();
     return nullptr;
