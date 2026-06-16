@@ -77,16 +77,13 @@ std::string ReadIl2CppString(void* strObj) {
     return Utf16ToUtf8(chars, length);
 }
 
-// Trampoline
+// DownloadError Hook
 typedef void* (*exec_download_error_t)(void* this_ptr, void* error, void* onRetry, void* onGotoTitle, void* method_info);
 static exec_download_error_t o_ExecDownloadErrorProcess = nullptr;
 
 static void* h_ExecDownloadErrorProcess(void* this_ptr, void* error, void* onRetry, void* onGotoTitle, void* method_info) {
     Log("--- INTERCEPTED DOWNLOAD ERROR ---");
-    
     if (error) {
-        // Cyan.Downloader.Error
-        // type at 0x10, message at 0x18, url at 0x20
         int32_t type = *(int32_t*)((char*)error + 0x10);
         void* messageObj = *(void**)((char*)error + 0x18);
         void* urlObj = *(void**)((char*)error + 0x20);
@@ -100,10 +97,62 @@ static void* h_ExecDownloadErrorProcess(void* this_ptr, void* error, void* onRet
     } else {
         Log("Error object is null!");
     }
-    
     Log("----------------------------------");
-    
     return o_ExecDownloadErrorProcess(this_ptr, error, onRetry, onGotoTitle, method_info);
+}
+
+// DialogManager Hooks
+typedef void* (*push_dialog_t)(void* this_ptr, void* data, void* method_info);
+static push_dialog_t o_PushDialog = nullptr;
+
+static void* h_PushDialog(void* this_ptr, void* data, void* method_info) {
+    if (data) {
+        void* titleObj = *(void**)((char*)data + 0x18);
+        void* textObj = *(void**)((char*)data + 0xc8);
+        std::string title = ReadIl2CppString(titleObj);
+        std::string text = ReadIl2CppString(textObj);
+        
+        Log("--- DIALOG POPUP ---");
+        Log("Title: " + title);
+        Log("Text: " + text);
+        Log("--------------------");
+    }
+    return o_PushDialog(this_ptr, data, method_info);
+}
+
+typedef void* (*push_error_common_t)(void* this_ptr, void* message, void* headerMessage, void* onClose, int32_t popupType, void* method_info);
+static push_error_common_t o_PushErrorCommon = nullptr;
+
+static void* h_PushErrorCommon(void* this_ptr, void* message, void* headerMessage, void* onClose, int32_t popupType, void* method_info) {
+    std::string msg = ReadIl2CppString(message);
+    std::string header = ReadIl2CppString(headerMessage);
+    
+    Log("--- ERROR COMMON POPUP ---");
+    Log("Header: " + header);
+    Log("Message: " + msg);
+    Log("PopupType: " + std::to_string(popupType));
+    Log("--------------------------");
+    
+    return o_PushErrorCommon(this_ptr, message, headerMessage, onClose, popupType, method_info);
+}
+
+void HookMethod(void* interceptor, void* klass, const char* methodName, int argsCount, void* hookFunc, void** origFuncOut) {
+    void* method = g_get_method(klass, methodName, argsCount);
+    if (!method) {
+        Log("Failed to find method: " + std::string(methodName));
+        return;
+    }
+    void* addr = g_get_method_addr(method);
+    if (!addr) {
+        Log("Failed to get address for: " + std::string(methodName));
+        return;
+    }
+    *origFuncOut = g_interceptor_hook(interceptor, addr, hookFunc);
+    if (*origFuncOut) {
+        Log("Hooked " + std::string(methodName) + " successfully!");
+    } else {
+        Log("Failed to hook " + std::string(methodName));
+    }
 }
 
 void OnGameInitialized() {
@@ -115,34 +164,24 @@ void OnGameInitialized() {
         return;
     }
     
-    void* klass = g_get_class(image, "Gallop", "DownloadErrorProcessor");
-    if (!klass) {
-        Log("Failed to get Gallop.DownloadErrorProcessor");
-        return;
-    }
-    
-    // ExecDownloadErrorProcess(Cyan.Downloader.Error error, System.Action onRetry, System.Action onGotoTitle)
-    void* method = g_get_method(klass, "ExecDownloadErrorProcess", 3);
-    if (!method) {
-        Log("Failed to find ExecDownloadErrorProcess");
-        return;
-    }
-    
-    void* addr = g_get_method_addr(method);
-    if (!addr) {
-        Log("Failed to get method address");
-        return;
-    }
-    
     void* hachimi = g_hachimi_instance();
     void* interceptor = g_hachimi_get_interceptor(hachimi);
     
-    o_ExecDownloadErrorProcess = (exec_download_error_t)g_interceptor_hook(interceptor, addr, (void*)h_ExecDownloadErrorProcess);
-    
-    if (o_ExecDownloadErrorProcess) {
-        Log("Error hooks installed successfully!");
+    // DownloadErrorProcessor
+    void* downloadProcessorKlass = g_get_class(image, "Gallop", "DownloadErrorProcessor");
+    if (downloadProcessorKlass) {
+        HookMethod(interceptor, downloadProcessorKlass, "ExecDownloadErrorProcess", 3, (void*)h_ExecDownloadErrorProcess, (void**)&o_ExecDownloadErrorProcess);
     } else {
-        Log("Failed to install error hooks.");
+        Log("Failed to get Gallop.DownloadErrorProcessor");
+    }
+    
+    // DialogManager
+    void* dialogManagerKlass = g_get_class(image, "Gallop", "DialogManager");
+    if (dialogManagerKlass) {
+        HookMethod(interceptor, dialogManagerKlass, "PushDialog", 1, (void*)h_PushDialog, (void**)&o_PushDialog);
+        HookMethod(interceptor, dialogManagerKlass, "PushErrorCommon", 4, (void*)h_PushErrorCommon, (void**)&o_PushErrorCommon);
+    } else {
+        Log("Failed to get Gallop.DialogManager");
     }
 }
 
