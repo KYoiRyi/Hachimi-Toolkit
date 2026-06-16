@@ -47,22 +47,26 @@ static bool RegisterThreadWithGC() {
 static bool CheckIl2CppReady() {
     void* handle = dlopen("libil2cpp.so", RTLD_NOLOAD | RTLD_LAZY);
     if (!handle) {
-        Log("[error] libil2cpp.so not loaded");
-        if (g_gui_show_notification) g_gui_show_notification("IL2CPP-Dumper Error: libil2cpp.so not loaded");
+        static bool log_once = false;
+        if (!log_once) { Log("Waiting for libil2cpp.so to load..."); log_once = true; }
         return false;
     }
 
     if (!api::initialized)
         api::init();
     if (!api::initialized) {
-        Log("[error] api init failed");
-        if (g_gui_show_notification) g_gui_show_notification("IL2CPP-Dumper Error: API init failed (functions missing)");
+        static bool log_once = false;
+        if (!log_once) {
+            Log("[error] api init failed");
+            if (g_gui_show_notification) g_gui_show_notification("IL2CPP-Dumper Error: API init failed");
+            log_once = true;
+        }
         return false;
     }
 
     if (!(api::get_domain && api::get_domain())) {
-        Log("[error] domain not ready");
-        if (g_gui_show_notification) g_gui_show_notification("IL2CPP-Dumper Error: Domain not ready");
+        static bool log_once = false;
+        if (!log_once) { Log("Waiting for il2cpp domain to be ready..."); log_once = true; }
         return false;
     }
 
