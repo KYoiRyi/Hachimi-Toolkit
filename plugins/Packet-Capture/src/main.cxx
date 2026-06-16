@@ -67,11 +67,17 @@ void EnsureDirectory(const std::string& path) {
 }
 
 void DumpByteArray(const std::string& prefix, void* arrayObj) {
-    if (!arrayObj) return;
-    size_t length = *(size_t*)((char*)arrayObj + 0x18);
-    if (length == 0 || length > (64u * 1024 * 1024)) return;
+    if (!arrayObj) {
+        Log(prefix + ": null array pointer");
+        return;
+    }
+    int32_t length = *(int32_t*)((char*)arrayObj + sizeof(void*) * 3);
+    if (length <= 0 || length > (16 * 1024 * 1024)) {
+        Log(prefix + ": invalid length " + std::to_string(length));
+        return;
+    }
     
-    char* data = (char*)arrayObj + 0x20;
+    char* data = (char*)arrayObj + sizeof(void*) * 4;
     
     g_seq++;
     
@@ -114,16 +120,30 @@ static compress_req_t o_CompressRequest = nullptr;
 static decompress_resp_t o_DecompressResponse = nullptr;
 
 static void* h_CompressRequest(void* body, void* method_info) {
-    DumpByteArray("compreq_in", body);
+    try {
+        DumpByteArray("compreq_in", body);
+    } catch(...) { Log("Crash prevented in compreq_in"); }
+    
     void* ret = o_CompressRequest(body, method_info);
-    DumpByteArray("compreq_out", ret);
+    
+    try {
+        DumpByteArray("compreq_out", ret);
+    } catch(...) { Log("Crash prevented in compreq_out"); }
+    
     return ret;
 }
 
 static void* h_DecompressResponse(void* response, void* method_info) {
-    DumpByteArray("decresp_in", response);
+    try {
+        DumpByteArray("decresp_in", response);
+    } catch(...) { Log("Crash prevented in decresp_in"); }
+    
     void* ret = o_DecompressResponse(response, method_info);
-    DumpByteArray("decresp_out", ret);
+    
+    try {
+        DumpByteArray("decresp_out", ret);
+    } catch(...) { Log("Crash prevented in decresp_out"); }
+    
     return ret;
 }
 
