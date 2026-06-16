@@ -113,37 +113,23 @@ void DumpByteArray(const std::string& prefix, void* arrayObj) {
 }
 
 // Trampolines
-typedef void* (*compress_req_t)(void* body, void* method_info);
-typedef void* (*decompress_resp_t)(void* response, void* method_info);
+typedef void* (*compress_req_t)(void* this_ptr, void* body, void* method_info);
+typedef void* (*decompress_resp_t)(void* this_ptr, void* response, void* method_info);
 
 static compress_req_t o_CompressRequest = nullptr;
 static decompress_resp_t o_DecompressResponse = nullptr;
 
-static void* h_CompressRequest(void* body, void* method_info) {
-    try {
-        DumpByteArray("compreq_in", body);
-    } catch(...) { Log("Crash prevented in compreq_in"); }
-    
-    void* ret = o_CompressRequest(body, method_info);
-    
-    try {
-        DumpByteArray("compreq_out", ret);
-    } catch(...) { Log("Crash prevented in compreq_out"); }
-    
+static void* h_CompressRequest(void* this_ptr, void* body, void* method_info) {
+    DumpByteArray("compreq_in", body);
+    void* ret = o_CompressRequest(this_ptr, body, method_info);
+    DumpByteArray("compreq_out", ret);
     return ret;
 }
 
-static void* h_DecompressResponse(void* response, void* method_info) {
-    try {
-        DumpByteArray("decresp_in", response);
-    } catch(...) { Log("Crash prevented in decresp_in"); }
-    
-    void* ret = o_DecompressResponse(response, method_info);
-    
-    try {
-        DumpByteArray("decresp_out", ret);
-    } catch(...) { Log("Crash prevented in decresp_out"); }
-    
+static void* h_DecompressResponse(void* this_ptr, void* response, void* method_info) {
+    DumpByteArray("decresp_in", response);
+    void* ret = o_DecompressResponse(this_ptr, response, method_info);
+    DumpByteArray("decresp_out", ret);
     return ret;
 }
 
