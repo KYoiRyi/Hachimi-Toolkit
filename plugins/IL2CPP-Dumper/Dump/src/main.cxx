@@ -148,6 +148,21 @@ extern "C" __attribute__((visibility("default"))) bool hachimi_init_v3(HachimiGe
     EnsureDirectory("/sdcard/Android/media/" + pkg + "/hachimi");
     EnsureDirectory(g_outputDir);
 
+    std::string configPath = g_outputDir + "/config.txt";
+    std::ifstream ifs(configPath);
+    if (!ifs.is_open()) {
+        std::ofstream ofs(configPath);
+        ofs << "Dump=true\n";
+    } else {
+        std::string line;
+        while (std::getline(ifs, line)) {
+            if (line.find("Dump=false") != std::string::npos) {
+                Log("Dump=false found in config.txt. Exiting IL2CPP-Dumper.");
+                return true;
+            }
+        }
+    }
+
     Log("IL2CPP-Dumper Plugin Initialized! Output Dir: " + g_outputDir);
 
     pthread_t t;

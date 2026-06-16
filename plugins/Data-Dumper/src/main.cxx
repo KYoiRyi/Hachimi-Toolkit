@@ -20,6 +20,13 @@ void Log(const std::string& msg) {
     } else {
         std::cout << "[DataDumper] " << msg << "\n";
     }
+    if (!g_outputDir.empty()) {
+        std::ofstream ofs(g_outputDir + "/dumper.log", std::ios::out | std::ios::app);
+        if (ofs.is_open()) {
+            ofs << msg << "\n";
+            ofs.close();
+        }
+    }
 }
 
 std::string GetPackageName() {
