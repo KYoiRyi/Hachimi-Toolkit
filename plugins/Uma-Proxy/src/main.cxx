@@ -130,7 +130,7 @@ static int h_curl_setopt(void* curl, int option, void* param) {
     if (option == 10002 && param) { // CURLOPT_URL
         const char* u = (const char*)param;
         std::string s_url(u);
-        if (g_proxy_enabled && s_url.find("api.games.umamusume.com") != std::string::npos) {
+        if (g_proxy_enabled && s_url.find("api.games.umamusume") != std::string::npos) {
             size_t p = s_url.find("/umamusume/");
             std::string path = (p != std::string::npos) ? s_url.substr(p) : "/";
             std::string new_url_s = g_proxy_url + path;
@@ -156,7 +156,7 @@ static void* h_Post(void* this_ptr, void* url_str, void* postData, void* headers
     std::string s_url;
     for (int i = 0; i < len; ++i) if (chars[i] < 0x80) s_url += (char)chars[i];
     
-    if (g_proxy_enabled && s_url.find("api.games.umamusume.com") != std::string::npos) {
+    if (g_proxy_enabled && s_url.find("api.games.umamusume") != std::string::npos) {
         size_t p = s_url.find("/umamusume/");
         std::string path = (p != std::string::npos) ? s_url.substr(p) : "/";
         std::string new_url_s = g_proxy_url + path;
