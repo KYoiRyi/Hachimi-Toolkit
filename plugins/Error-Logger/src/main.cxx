@@ -103,6 +103,19 @@ static void* h_ErrorCtor(void* this_ptr, int32_t type, int32_t errorFlag, int32_
 }
 
 
+
+// curl_easy_setopt Hook for SSL Bypass
+typedef int (*curl_setopt_t)(void* curl, int option, void* param);
+static curl_setopt_t o_curl_setopt = nullptr;
+
+static int h_curl_setopt(void* curl, int option, void* param) {
+    if (option == 64 || option == 81) {
+        // Log("Bypassing SSL Verification (option: " + std::to_string(option) + ")"); // Avoid spamming
+        return o_curl_setopt(curl, option, (void*)0);
+    }
+    return o_curl_setopt(curl, option, param);
+}
+
 void HookMethod(void* interceptor, void* klass, const char* methodName, int argsCount, void* hookFunc, void** origFuncOut) {
     void* addr = g_get_method_addr(klass, methodName, argsCount);
     if (!addr) {
@@ -140,6 +153,19 @@ void OnGameInitialized() {
         }
     } else {
         Log("Failed to get _Cyan.dll");
+    }
+    
+    // Install SSL Bypass
+    void* handle_il2cpp = dlopen("libil2cpp.so", RTLD_LAZY);
+    if (handle_il2cpp) {
+        void* curl_sym = dlsym(handle_il2cpp, "curl_easy_setopt");
+        if (curl_sym) {
+            o_curl_setopt = (curl_setopt_t)g_interceptor_hook(interceptor, curl_sym, (void*)h_curl_setopt);
+            Log("libcurl curl_easy_setopt hook installed for SSL Bypass.");
+        } else {
+            Log("Failed to find curl_easy_setopt in libil2cpp.so");
+        }
+        dlclose(handle_il2cpp);
     }
 }
 
