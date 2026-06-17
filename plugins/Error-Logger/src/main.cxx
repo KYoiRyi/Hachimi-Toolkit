@@ -86,10 +86,10 @@ std::string ReadIl2CppString(void* strObj) {
 }
 
 // DownloadError Hook
-typedef void* (*exec_download_error_t)(void* this_ptr, void* error, void* onRetry, void* onGotoTitle, void* method_info);
+typedef void* (*exec_download_error_t)(void* error, void* onRetry, void* onGotoTitle, void* method_info);
 static exec_download_error_t o_ExecDownloadErrorProcess = nullptr;
 
-static void* h_ExecDownloadErrorProcess(void* this_ptr, void* error, void* onRetry, void* onGotoTitle, void* method_info) {
+static void* h_ExecDownloadErrorProcess(void* error, void* onRetry, void* onGotoTitle, void* method_info) {
     Log("--- INTERCEPTED DOWNLOAD ERROR ---");
     if (error) {
         int32_t type = *(int32_t*)((char*)error + 0x10);
@@ -106,7 +106,7 @@ static void* h_ExecDownloadErrorProcess(void* this_ptr, void* error, void* onRet
         Log("Error object is null!");
     }
     Log("----------------------------------");
-    return o_ExecDownloadErrorProcess(this_ptr, error, onRetry, onGotoTitle, method_info);
+    return o_ExecDownloadErrorProcess(error, onRetry, onGotoTitle, method_info);
 }
 
 // DialogManager Hooks
