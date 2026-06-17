@@ -48,6 +48,10 @@ static il2cpp_string_length_t g_string_length = nullptr;
 
 static std::string g_outputDir;
 
+// Configs
+static bool g_capture_enabled = true;
+static bool g_download_capture_enabled = true;
+
 static thread_local std::vector<uint8_t> t_last_raw_request;
 static std::mutex g_queue_mutex;
 static std::deque<std::string> g_url_queue;
@@ -117,7 +121,7 @@ static decompress_resp_t o_DecompressResponse = nullptr;
 static post_t o_Post = nullptr;
 
 static void* h_CompressRequest(void* body, void* method_info) {
-    if (body) {
+    if (g_capture_enabled && body) {
         int32_t length = *(int32_t*)((char*)body + sizeof(void*) * 3);
         char* data = (char*)body + sizeof(void*) * 4;
         if (length > 0 && length < (16 * 1024 * 1024)) {
@@ -129,7 +133,7 @@ static void* h_CompressRequest(void* body, void* method_info) {
 
 static void* h_DecompressResponse(void* response, void* method_info) {
     void* ret = o_DecompressResponse(response, method_info);
-    if (ret) {
+    if (g_capture_enabled && ret) {
         int32_t length = *(int32_t*)((char*)ret + sizeof(void*) * 3);
         char* data = (char*)ret + sizeof(void*) * 4;
         if (length > 0 && length < (16 * 1024 * 1024)) {
@@ -148,6 +152,7 @@ static void* h_DecompressResponse(void* response, void* method_info) {
 }
 
 static void* h_Post(void* this_ptr, void* url_str, void* postData, void* headers, void* method_info) {
+    if (!g_capture_enabled) return o_Post(this_ptr, url_str, postData, headers, method_info);
     std::string s_url;
     if (url_str && g_string_chars && g_string_length) {
         int32_t len = g_string_length(url_str);
@@ -189,8 +194,90 @@ static void* h_Post(void* this_ptr, void* url_str, void* postData, void* headers
     return o_Post(this_ptr, url_str, postData, headers, method_info);
 }
 
+typedef void* (*tempest_register_request_t)(void* this_ptr, int32_t* request_idx, void* body, void* method_info);
+static tempest_register_request_t o_TempestRegisterRequest = nullptr;
+
+static void* h_TempestRegisterRequest(void* this_ptr, int32_t* request_idx, void* body_ptr, void* method_info) {
+    if (g_download_capture_enabled && body_ptr) {
+        struct TempestRequestBody {
+            int32_t id;
+            int32_t padding;
+            void* url;
+            void* path;
+            uint64_t size;
+            uint64_t checksum;
+            int32_t strategy;
+            int32_t priority;
+        };
+        TempestRequestBody* body = (TempestRequestBody*)body_ptr;
+        
+        std::string s_url;
+        if (body->url && g_string_chars && g_string_length) {
+            int32_t len = g_string_length(body->url);
+            uint16_t* chars = g_string_chars(body->url);
+            for (int i = 0; i < len; ++i) if (chars[i] < 0x80) s_url += (char)chars[i];
+        }
+        
+        std::string s_path;
+        if (body->path && g_string_chars && g_string_length) {
+            int32_t len = g_string_length(body->path);
+            uint16_t* chars = g_string_chars(body->path);
+            for (int i = 0; i < len; ++i) if (chars[i] < 0x80) s_path += (char)chars[i];
+        }
+        
+        if (!s_url.empty()) {
+            json j;
+            j["id"] = body->id;
+            j["url"] = s_url;
+            j["path"] = s_path;
+            j["size"] = body->size;
+            j["checksum"] = body->checksum;
+            j["strategy"] = body->strategy;
+            j["priority"] = body->priority;
+            
+            std::string logLine = j.dump();
+            
+            std::string jsonPath = g_outputDir + "/downloads.jsonl";
+            std::ofstream ofs(jsonPath, std::ios::out | std::ios::app);
+            if (ofs.is_open()) {
+                ofs << logLine << "\n";
+                ofs.close();
+            }
+        }
+    }
+    return o_TempestRegisterRequest(this_ptr, request_idx, body_ptr, method_info);
+}
+
+void LoadConfig() {
+    std::string configPath = g_outputDir + "/capture_config.json";
+    std::ifstream ifs(configPath);
+    if (ifs.is_open()) {
+        try {
+            json j;
+            ifs >> j;
+            g_capture_enabled = j.value("capture_enabled", true);
+            g_download_capture_enabled = j.value("download_capture_enabled", true);
+            Log("Config loaded. Normal Capture: " + std::to_string(g_capture_enabled) + 
+                ", Download Capture: " + std::to_string(g_download_capture_enabled));
+        } catch (const std::exception& e) {
+            Log("Failed to parse config: " + std::string(e.what()));
+        }
+    } else {
+        json j;
+        j["capture_enabled"] = true;
+        j["download_capture_enabled"] = true;
+        std::ofstream ofs(configPath);
+        if (ofs.is_open()) {
+            ofs << j.dump(4);
+            ofs.close();
+            Log("Default config created.");
+        }
+    }
+}
+
 void OnGameInitialized() {
     Log("Game initialized, setting up capture hooks...");
+    LoadConfig();
     
     void* handle = dlopen("libil2cpp.so", RTLD_LAZY);
     if (handle) {
@@ -231,6 +318,20 @@ void OnGameInitialized() {
                 void* interceptor = g_hachimi_get_interceptor(hachimi);
                 o_Post = (post_t)g_interceptor_hook(interceptor, a_post, (void*)h_Post);
                 Log("Cute.Http.WWWRequest.Post hook installed.");
+            }
+        }
+    }
+
+    void* image_libnative = g_get_assembly_image("LibNative.Runtime.dll");
+    if (image_libnative) {
+        void* klass_downloader = g_get_class(image_libnative, "LibNative.Tempest", "Downloader");
+        if (klass_downloader) {
+            void* a_register_req = g_get_method_addr(klass_downloader, "RegisterRequest", 2);
+            if (a_register_req) {
+                void* hachimi = g_hachimi_instance();
+                void* interceptor = g_hachimi_get_interceptor(hachimi);
+                o_TempestRegisterRequest = (tempest_register_request_t)g_interceptor_hook(interceptor, a_register_req, (void*)h_TempestRegisterRequest);
+                Log("LibNative.Tempest.Downloader.RegisterRequest hook installed.");
             }
         }
     }
