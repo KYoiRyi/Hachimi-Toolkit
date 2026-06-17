@@ -225,24 +225,22 @@ static void* h_TempestRegisterRequest(void* this_ptr, int32_t* request_idx, void
             for (int i = 0; i < len; ++i) if (chars[i] < 0x80) s_path += (char)chars[i];
         }
         
-        if (!s_url.empty()) {
-            json j;
-            j["id"] = body->id;
-            j["url"] = s_url;
-            j["path"] = s_path;
-            j["size"] = body->size;
-            j["checksum"] = body->checksum;
-            j["strategy"] = body->strategy;
-            j["priority"] = body->priority;
-            
-            std::string logLine = j.dump();
-            
-            std::string jsonPath = g_outputDir + "/downloads.jsonl";
-            std::ofstream ofs(jsonPath, std::ios::out | std::ios::app);
-            if (ofs.is_open()) {
-                ofs << logLine << "\n";
-                ofs.close();
-            }
+        json j;
+        j["id"] = body->id;
+        j["url"] = s_url.empty() ? "<EMPTY_OR_NULL>" : s_url;
+        j["path"] = s_path;
+        j["size"] = body->size;
+        j["checksum"] = body->checksum;
+        j["strategy"] = body->strategy;
+        j["priority"] = body->priority;
+        
+        std::string logLine = j.dump();
+        
+        std::string jsonPath = g_outputDir + "/downloads.jsonl";
+        std::ofstream ofs(jsonPath, std::ios::out | std::ios::app);
+        if (ofs.is_open()) {
+            ofs << logLine << "\n";
+            ofs.close();
         }
     }
     return o_TempestRegisterRequest(this_ptr, request_idx, body_ptr, method_info);
