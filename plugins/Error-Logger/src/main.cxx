@@ -232,7 +232,19 @@ void OnGameInitialized() {
     }
 }
 
-extern "C" bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
+void* HookThread(void*) {
+    while (true) {
+        if (g_get_assembly_image) {
+            void* image_uma = g_get_assembly_image("umamusume.dll");
+            if (image_uma) break;
+        }
+        usleep(1000);
+    }
+    OnGameInitialized();
+    return nullptr;
+}
+
+extern "C" __attribute__((visibility("default"))) bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
     g_hachimi_instance = (hachimi_instance_t)get_api("hachimi_instance");
     g_hachimi_get_interceptor = (hachimi_get_interceptor_t)get_api("hachimi_get_interceptor");
     g_interceptor_hook = (interceptor_hook_t)get_api("interceptor_hook");
@@ -245,19 +257,14 @@ extern "C" bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
     g_string_chars = (il2cpp_string_chars_t)get_api("il2cpp_string_chars");
     g_string_length = (il2cpp_string_length_t)get_api("il2cpp_string_length");
     
-    hachimi_register_on_game_initialized_t register_init = 
-        (hachimi_register_on_game_initialized_t)get_api("hachimi_register_on_game_initialized");
-
     g_outputDir = "/sdcard/Android/media/jp.co.cygames.umamusume/hachimi/ErrorLog";
     EnsureDirectory(g_outputDir);
     
     Log("Error-Logger Plugin Initialized! Output Dir: " + g_outputDir);
     
-    if (register_init) {
-        register_init(OnGameInitialized);
-    } else {
-        Log("Failed to get hachimi_register_on_game_initialized");
-    }
+    pthread_t t;
+    pthread_create(&t, nullptr, HookThread, nullptr);
+    pthread_detach(t);
     
     return true;
 }
