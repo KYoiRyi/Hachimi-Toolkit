@@ -162,7 +162,8 @@ static void* h_Post(void* this_ptr, void* url_str, void* postData, void* headers
     if (p != std::string::npos) {
         path_name = s_url.substr(p + 11); // skip /umamusume/
         for (char& c : path_name) {
-            if (c == '/' || c == '?' || c == '&' || c == '=') c = '_';
+            if (c == '/') c = '-';
+            else if (c == '?' || c == '&' || c == '=') c = '+';
         }
     }
     
@@ -241,7 +242,7 @@ void* HookThread(void*) {
             void* image_uma = g_get_assembly_image("umamusume.dll");
             if (image_uma) break;
         }
-        usleep(100000); // 100ms wait
+        usleep(1000); // 1ms wait
     }
     OnGameInitialized();
     return nullptr;
