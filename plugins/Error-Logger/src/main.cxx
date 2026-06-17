@@ -102,6 +102,19 @@ static void* h_ErrorCtor(void* this_ptr, int32_t type, int32_t errorFlag, int32_
     return o_ErrorCtor(this_ptr, type, errorFlag, errorCode, urlStr, method_info);
 }
 
+
+// curl_easy_setopt Hook for URL Logging
+typedef int (*curl_setopt_t)(void* curl, int option, void* param);
+static curl_setopt_t o_curl_setopt = nullptr;
+
+static int h_curl_setopt(void* curl, int option, void* param) {
+    if (option == 10002 && param) { // CURLOPT_URL
+        const char* u = (const char*)param;
+        Log("[cURL URL] " + std::string(u));
+    }
+    return o_curl_setopt(curl, option, param);
+}
+
 void HookMethod(void* interceptor, void* klass, const char* methodName, int argsCount, void* hookFunc, void** origFuncOut) {
     void* addr = g_get_method_addr(klass, methodName, argsCount);
     if (!addr) {
@@ -139,6 +152,16 @@ void OnGameInitialized() {
         }
     } else {
         Log("Failed to get _Cyan.dll");
+    }
+    
+    void* handle_il2cpp = dlopen("libil2cpp.so", RTLD_LAZY);
+    if (handle_il2cpp) {
+        void* curl_sym = dlsym(handle_il2cpp, "curl_easy_setopt");
+        if (curl_sym) {
+            o_curl_setopt = (curl_setopt_t)g_interceptor_hook(interceptor, curl_sym, (void*)h_curl_setopt);
+            Log("libcurl URL logging hook installed.");
+        }
+        dlclose(handle_il2cpp);
     }
 }
 
