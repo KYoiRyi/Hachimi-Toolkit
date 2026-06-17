@@ -15,7 +15,7 @@ typedef void* (*interceptor_hook_t)(void* interceptor, void* orig_addr, void* ho
 typedef void* (*il2cpp_get_assembly_image_t)(const char* assembly_name);
 typedef void* (*il2cpp_get_class_t)(void* image, const char* namespaze, const char* name);
 typedef void* (*il2cpp_get_method_t)(void* klass, const char* name, int argsCount);
-typedef void* (*il2cpp_get_method_addr_t)(void* method);
+typedef void* (*il2cpp_get_method_addr_t)(void* klass, const char* name, int argsCount);
 
 typedef void* (*il2cpp_string_chars_t)(void* s);
 typedef int32_t (*il2cpp_string_length_t)(void* s);
@@ -104,12 +104,7 @@ static void* h_ErrorCtor(void* this_ptr, int32_t type, int32_t errorFlag, int32_
 
 
 void HookMethod(void* interceptor, void* klass, const char* methodName, int argsCount, void* hookFunc, void** origFuncOut) {
-    void* method = g_get_method(klass, methodName, argsCount);
-    if (!method) {
-        Log("Failed to find method: " + std::string(methodName));
-        return;
-    }
-    void* addr = g_get_method_addr(method);
+    void* addr = g_get_method_addr(klass, methodName, argsCount);
     if (!addr) {
         Log("Failed to get address for: " + std::string(methodName));
         return;
