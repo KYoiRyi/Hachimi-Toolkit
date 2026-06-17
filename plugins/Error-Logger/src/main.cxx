@@ -110,10 +110,10 @@ static void* h_ExecDownloadErrorProcess(void* error, void* onRetry, void* onGoto
 }
 
 // DialogManager Hooks
-typedef void* (*push_dialog_t)(void* this_ptr, void* data, void* method_info);
+typedef void* (*push_dialog_t)(void* data, void* method_info);
 static push_dialog_t o_PushDialog = nullptr;
 
-static void* h_PushDialog(void* this_ptr, void* data, void* method_info) {
+static void* h_PushDialog(void* data, void* method_info) {
     if (data) {
         void* titleObj = *(void**)((char*)data + 0x18);
         void* textObj = *(void**)((char*)data + 0xc8);
@@ -125,13 +125,13 @@ static void* h_PushDialog(void* this_ptr, void* data, void* method_info) {
         Log("Text: " + text);
         Log("--------------------");
     }
-    return o_PushDialog(this_ptr, data, method_info);
+    return o_PushDialog(data, method_info);
 }
 
-typedef void* (*push_error_common_t)(void* this_ptr, void* message, void* headerMessage, void* onClose, int32_t popupType, void* method_info);
+typedef void* (*push_error_common_t)(void* message, void* headerMessage, void* onClose, int32_t popupType, void* method_info);
 static push_error_common_t o_PushErrorCommon = nullptr;
 
-static void* h_PushErrorCommon(void* this_ptr, void* message, void* headerMessage, void* onClose, int32_t popupType, void* method_info) {
+static void* h_PushErrorCommon(void* message, void* headerMessage, void* onClose, int32_t popupType, void* method_info) {
     std::string msg = ReadIl2CppString(message);
     std::string header = ReadIl2CppString(headerMessage);
     
@@ -141,7 +141,7 @@ static void* h_PushErrorCommon(void* this_ptr, void* message, void* headerMessag
     Log("PopupType: " + std::to_string(popupType));
     Log("--------------------------");
     
-    return o_PushErrorCommon(this_ptr, message, headerMessage, onClose, popupType, method_info);
+    return o_PushErrorCommon(message, headerMessage, onClose, popupType, method_info);
 }
 
 typedef void* (*debug_log_error_t)(void* messageObj, void* method_info);
@@ -240,6 +240,8 @@ void* HookThread(void*) {
         }
         usleep(1000);
     }
+    // Add a 1-second delay to prevent concurrent hooking crashes with other plugins
+    usleep(1000000);
     OnGameInitialized();
     return nullptr;
 }
