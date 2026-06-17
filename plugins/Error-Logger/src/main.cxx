@@ -85,90 +85,23 @@ std::string ReadIl2CppString(void* strObj) {
     return Utf16ToUtf8(chars, length);
 }
 
-// DownloadError Hook
-typedef void* (*exec_download_error_t)(void* error, void* onRetry, void* onGotoTitle, void* method_info);
-static exec_download_error_t o_ExecDownloadErrorProcess = nullptr;
+// Cyan.Downloader.Error Constructor Hook
+typedef void* (*error_ctor_t)(void* this_ptr, int32_t type, int32_t errorFlag, int32_t errorCode, void* urlStr, void* method_info);
+static error_ctor_t o_ErrorCtor = nullptr;
 
-static void* h_ExecDownloadErrorProcess(void* error, void* onRetry, void* onGotoTitle, void* method_info) {
-    Log("--- INTERCEPTED DOWNLOAD ERROR ---");
-    if (error) {
-        int32_t type = *(int32_t*)((char*)error + 0x10);
-        void* messageObj = *(void**)((char*)error + 0x18);
-        void* urlObj = *(void**)((char*)error + 0x20);
-        
-        std::string msg = ReadIl2CppString(messageObj);
-        std::string url = ReadIl2CppString(urlObj);
-        
-        Log("Error Type: " + std::to_string(type));
-        Log("Message: " + msg);
-        Log("URL: " + url);
-    } else {
-        Log("Error object is null!");
-    }
-    Log("----------------------------------");
-    return o_ExecDownloadErrorProcess(error, onRetry, onGotoTitle, method_info);
-}
-
-// DialogManager Hooks
-typedef void* (*push_dialog_t)(void* data, void* method_info);
-static push_dialog_t o_PushDialog = nullptr;
-
-static void* h_PushDialog(void* data, void* method_info) {
-    if (data) {
-        void* titleObj = *(void**)((char*)data + 0x18);
-        void* textObj = *(void**)((char*)data + 0xc8);
-        std::string title = ReadIl2CppString(titleObj);
-        std::string text = ReadIl2CppString(textObj);
-        
-        Log("--- DIALOG POPUP ---");
-        Log("Title: " + title);
-        Log("Text: " + text);
-        Log("--------------------");
-    }
-    return o_PushDialog(data, method_info);
-}
-
-typedef void* (*push_error_common_t)(void* message, void* headerMessage, void* onClose, int32_t popupType, void* method_info);
-static push_error_common_t o_PushErrorCommon = nullptr;
-
-static void* h_PushErrorCommon(void* message, void* headerMessage, void* onClose, int32_t popupType, void* method_info) {
-    std::string msg = ReadIl2CppString(message);
-    std::string header = ReadIl2CppString(headerMessage);
+static void* h_ErrorCtor(void* this_ptr, int32_t type, int32_t errorFlag, int32_t errorCode, void* urlStr, void* method_info) {
+    Log("--- INTERCEPTED DOWNLOAD ERROR (CTOR) ---");
+    Log("ErrorType: " + std::to_string(type));
+    Log("ErrorFlag: " + std::to_string(errorFlag));
+    Log("ErrorCode: " + std::to_string(errorCode));
     
-    Log("--- ERROR COMMON POPUP ---");
-    Log("Header: " + header);
-    Log("Message: " + msg);
-    Log("PopupType: " + std::to_string(popupType));
-    Log("--------------------------");
+    std::string url = ReadIl2CppString(urlStr);
+    Log("URL: " + url);
+    Log("-----------------------------------------");
     
-    return o_PushErrorCommon(message, headerMessage, onClose, popupType, method_info);
+    return o_ErrorCtor(this_ptr, type, errorFlag, errorCode, urlStr, method_info);
 }
 
-typedef void* (*debug_log_error_t)(void* messageObj, void* method_info);
-static debug_log_error_t o_DebugLogError = nullptr;
-
-static void* h_DebugLogError(void* messageObj, void* method_info) {
-    if (messageObj) {
-        void* klass = *(void**)messageObj;
-        void* image = *(void**)((char*)klass + 0x0); // Image ptr is at 0x0 of class in some versions, actually let's just not risk it.
-        
-        Log("--- UNITY DEBUG.LOGERROR ---");
-        Log("An error was logged. Object Address: " + std::to_string((uintptr_t)messageObj));
-        
-        // We attempt to read it as string, but cautiously.
-        try {
-            int32_t len = g_string_length(messageObj);
-            if (len >= 0 && len < 10000) {
-                std::string msg = ReadIl2CppString(messageObj);
-                Log(msg);
-            } else {
-                Log("(Message object is not a valid string or too long)");
-            }
-        } catch(...) {}
-        Log("----------------------------");
-    }
-    return o_DebugLogError(messageObj, method_info);
-}
 
 void HookMethod(void* interceptor, void* klass, const char* methodName, int argsCount, void* hookFunc, void** origFuncOut) {
     void* method = g_get_method(klass, methodName, argsCount);
@@ -201,34 +134,17 @@ void OnGameInitialized() {
     void* hachimi = g_hachimi_instance();
     void* interceptor = g_hachimi_get_interceptor(hachimi);
     
-    // DownloadErrorProcessor
-    void* downloadProcessorKlass = g_get_class(image, "Gallop", "DownloadErrorProcessor");
-    if (downloadProcessorKlass) {
-        HookMethod(interceptor, downloadProcessorKlass, "ExecDownloadErrorProcess", 3, (void*)h_ExecDownloadErrorProcess, (void**)&o_ExecDownloadErrorProcess);
-    } else {
-        Log("Failed to get Gallop.DownloadErrorProcessor");
-    }
-    
-    // DialogManager
-    void* dialogManagerKlass = g_get_class(image, "Gallop", "DialogManager");
-    if (dialogManagerKlass) {
-        HookMethod(interceptor, dialogManagerKlass, "PushDialog", 1, (void*)h_PushDialog, (void**)&o_PushDialog);
-        HookMethod(interceptor, dialogManagerKlass, "PushErrorCommon", 4, (void*)h_PushErrorCommon, (void**)&o_PushErrorCommon);
-    } else {
-        Log("Failed to get Gallop.DialogManager");
-    }
-    
-    // UnityEngine.Debug.LogError
-    void* coreModuleImage = g_get_assembly_image("UnityEngine.CoreModule.dll");
-    if (coreModuleImage) {
-        void* debugKlass = g_get_class(coreModuleImage, "UnityEngine", "Debug");
-        if (debugKlass) {
-            HookMethod(interceptor, debugKlass, "LogError", 1, (void*)h_DebugLogError, (void**)&o_DebugLogError);
+    // Cyan.Downloader.Error
+    void* cyanImage = g_get_assembly_image("_Cyan.dll");
+    if (cyanImage) {
+        void* errorKlass = g_get_class(cyanImage, "Cyan.Downloader", "Error");
+        if (errorKlass) {
+            HookMethod(interceptor, errorKlass, ".ctor", 4, (void*)h_ErrorCtor, (void**)&o_ErrorCtor);
         } else {
-            Log("Failed to get UnityEngine.Debug");
+            Log("Failed to get Cyan.Downloader.Error");
         }
     } else {
-        Log("Failed to get UnityEngine.CoreModule.dll");
+        Log("Failed to get _Cyan.dll");
     }
 }
 
