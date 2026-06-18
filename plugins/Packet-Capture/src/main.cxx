@@ -225,20 +225,9 @@ static void* h_TempestRegisterRequest(void* this_ptr, int32_t* request_idx, void
             for (int i = 0; i < len; ++i) if (chars[i] < 0x80) s_path += (char)chars[i];
         }
         
-        std::string new_url_str = s_url;
-        // Check if URL starts with https:// to prevent double concatenation by Tempest
-        if (new_url_str.find("https://") == 0) {
-            // Strip https:// 
-            new_url_str = new_url_str.substr(8);
-            // Update the IL2CPP string object
-            void* new_str_obj = g_string_new(new_url_str.c_str());
-            body->url = new_str_obj;
-            Log("[Tempest Fix] Stripped https:// from URL to prevent double concatenation.");
-        }
-
         json j;
         j["id"] = body->id;
-        j["url"] = new_url_str.empty() ? "<EMPTY_OR_NULL>" : new_url_str;
+        j["url"] = s_url.empty() ? "<EMPTY_OR_NULL>" : s_url;
         j["path"] = s_path;
         j["size"] = body->size;
         j["checksum"] = body->checksum;
