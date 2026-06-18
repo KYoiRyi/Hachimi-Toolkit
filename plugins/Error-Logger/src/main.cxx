@@ -115,6 +115,19 @@ static int h_curl_setopt(void* curl, int option, void* param) {
     return o_curl_setopt(curl, option, param);
 }
 
+
+// getaddrinfo hook for DNS tracing
+#include <netdb.h>
+typedef int (*getaddrinfo_t)(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
+static getaddrinfo_t o_getaddrinfo = nullptr;
+
+static int h_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res) {
+    if (node) {
+        Log("[DNS Resolve] " + std::string(node));
+    }
+    return o_getaddrinfo(node, service, hints, res);
+}
+
 void HookMethod(void* interceptor, void* klass, const char* methodName, int argsCount, void* hookFunc, void** origFuncOut) {
     void* addr = g_get_method_addr(klass, methodName, argsCount);
     if (!addr) {
@@ -152,6 +165,17 @@ void OnGameInitialized() {
         }
     } else {
         Log("Failed to get _Cyan.dll");
+    }
+    
+    // Install getaddrinfo hook
+    void* libc = dlopen("libc.so", RTLD_LAZY);
+    if (libc) {
+        void* sym = dlsym(libc, "getaddrinfo");
+        if (sym) {
+            o_getaddrinfo = (getaddrinfo_t)g_interceptor_hook(interceptor, sym, (void*)h_getaddrinfo);
+            Log("libc getaddrinfo hook installed for DNS tracing.");
+        }
+        dlclose(libc);
     }
     
     void* handle_il2cpp = dlopen("libil2cpp.so", RTLD_LAZY);
