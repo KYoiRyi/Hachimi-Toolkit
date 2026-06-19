@@ -65,6 +65,20 @@ std::string GetIl2CppString(void* str) {
     return s;
 }
 
+bool SafeRead(void* src, void* dest, size_t size) {
+    int filedes[2];
+    if (pipe(filedes) == -1) return false;
+    ssize_t written = write(filedes[1], src, size);
+    close(filedes[1]);
+    if (written == (ssize_t)size) {
+        ssize_t read_bytes = read(filedes[0], dest, size);
+        close(filedes[0]);
+        return read_bytes == (ssize_t)size;
+    }
+    close(filedes[0]);
+    return false;
+}
+
 uintptr_t GetModuleBase(const char* name) {
     FILE* f = fopen("/proc/self/maps", "r");
     if (!f) return 0;
@@ -102,41 +116,44 @@ static void* h_MakeMd5(void* input, void* method_info) {
     std::string s_input = GetIl2CppString(input);
     Log("Cryptographer::MakeMd5 -> Input: " + s_input);
     
-    uintptr_t base = GetModuleBase("libil2cpp.so");
-    if (base) {
-        void** slot = (void**)(base + 0x09AFD178);
-        if (slot && *slot) {
-            void** str_slot = (void**)(*slot);
-            if (str_slot && *str_slot) {
-                void* str_ptr = *str_slot;
-                int32_t len = g_string_length ? g_string_length(str_ptr) : -1;
-                uint16_t* chars = g_string_chars ? g_string_chars(str_ptr) : nullptr;
-                std::string raw_hex = "";
-                std::string printable = "";
-                if (chars) {
-                    for (int i = 0; i < (len > 64 ? 64 : len); ++i) {
-                        char tmp[8];
-                        sprintf(tmp, "%04X ", chars[i]);
-                        raw_hex += tmp;
-                        if (chars[i] >= 0x20 && chars[i] < 0x7F) {
-                            printable += (char)chars[i];
-                        } else {
-                            printable += ".";
-                        }
-                    }
-                }
-                Log("Cryptographer::MakeMd5 -> Salt ptr: " + std::to_string((uintptr_t)str_ptr) + ", len: " + std::to_string(len) + ", hex: " + raw_hex + ", printable: " + printable);
-            } else {
-                Log("Cryptographer::MakeMd5 -> Salt ptr slot points to null");
-            }
-        } else {
-            Log("Cryptographer::MakeMd5 -> Salt slot is null or empty");
-        }
-    }
-    
     void* res = o_MakeMd5(input, method_info);
     std::string s_res = GetIl2CppString(res);
     Log("Cryptographer::MakeMd5 -> Result: " + s_res);
+    
+    uintptr_t base = GetModuleBase("libil2cpp.so");
+    if (base) {
+        void* slot_addr = (void*)(base + 0x09AFD178);
+        void* slot_val = nullptr;
+        if (SafeRead(slot_addr, &slot_val, sizeof(void*)) && slot_val) {
+            // Try single indirection first
+            void* str_ptr = slot_val;
+            int32_t len = -1;
+            void* len_addr = (void*)((uintptr_t)str_ptr + 16);
+            if (SafeRead(len_addr, &len, sizeof(int32_t)) && len >= 0 && len < 1024) {
+                uint16_t* chars = g_string_chars ? g_string_chars(str_ptr) : nullptr;
+                if (chars) {
+                    std::string salt = GetIl2CppString(str_ptr);
+                    Log("Cryptographer::MakeMd5 -> Salt (single indirection): " + salt);
+                }
+            }
+            
+            // Try double indirection
+            void* str_ptr2 = nullptr;
+            if (SafeRead(slot_val, &str_ptr2, sizeof(void*)) && str_ptr2) {
+                int32_t len2 = -1;
+                void* len_addr2 = (void*)((uintptr_t)str_ptr2 + 16);
+                if (SafeRead(len_addr2, &len2, sizeof(int32_t)) && len2 >= 0 && len2 < 1024) {
+                    uint16_t* chars2 = g_string_chars ? g_string_chars(str_ptr2) : nullptr;
+                    if (chars2) {
+                        std::string salt2 = GetIl2CppString(str_ptr2);
+                        Log("Cryptographer::MakeMd5 -> Salt (double indirection): " + salt2);
+                    }
+                }
+            }
+        } else {
+            Log("Cryptographer::MakeMd5 -> Failed to read slot_addr safely or it is null");
+        }
+    }
     
     return res;
 }
