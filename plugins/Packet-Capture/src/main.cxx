@@ -1,19 +1,27 @@
-#include <jni.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <dlfcn.h>
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
 #include <string>
 #include <vector>
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
-#include <sys/stat.h>
+#include <thread>
+#include <chrono>
 #include <mutex>
 #include <deque>
 #include <atomic>
 #include "json.hpp"
 
 using json = nlohmann::json;
+
+#ifdef _WIN32
+#define HACHIMI_EXPORT extern "C" __declspec(dllexport)
+#else
+#define HACHIMI_EXPORT extern "C" __attribute__((visibility("default")))
+#endif
 
 typedef void* (*HachimiGetApiFn)(const char* name);
 
@@ -25,22 +33,26 @@ typedef void* (*il2cpp_get_assembly_image_t)(const char* assembly_name);
 typedef void* (*il2cpp_get_class_t)(void* image, const char* namespaze, const char* name);
 typedef void* (*il2cpp_get_method_t)(void* klass, const char* name, int argsCount);
 typedef void* (*il2cpp_get_method_addr_t)(void* klass, const char* name, int argsCount);
+typedef void* (*il2cpp_resolve_symbol_t)(const char* name);
 
 typedef void* (*il2cpp_string_new_t)(const char* text);
 typedef uint16_t* (*il2cpp_string_chars_t)(void* str);
 typedef int32_t (*il2cpp_string_length_t)(void* str);
 
 typedef void (*hachimi_log_t)(int level, const char* tag, const char* message);
+typedef const char* (*hachimi_get_data_path_t)();
 
 static hachimi_log_t g_log = nullptr;
 static hachimi_instance_t g_hachimi_instance = nullptr;
 static hachimi_get_interceptor_t g_hachimi_get_interceptor = nullptr;
 static interceptor_hook_t g_interceptor_hook = nullptr;
+static hachimi_get_data_path_t g_get_data_path = nullptr;
 
 static il2cpp_get_assembly_image_t g_get_assembly_image = nullptr;
 static il2cpp_get_class_t g_get_class = nullptr;
 static il2cpp_get_method_t g_get_method = nullptr;
 static il2cpp_get_method_addr_t g_get_method_addr = nullptr;
+static il2cpp_resolve_symbol_t g_resolve_symbol = nullptr;
 
 static il2cpp_string_new_t g_string_new = nullptr;
 static il2cpp_string_chars_t g_string_chars = nullptr;
@@ -76,11 +88,45 @@ void EnsureDirectory(const std::string& path) {
     std::string current = "";
     for (char c : path) {
         current += c;
-        if (c == '/') {
+        if (c == '/' || c == '\\') {
+#ifdef _WIN32
+            _mkdir(current.c_str());
+#else
             mkdir(current.c_str(), 0777);
+#endif
         }
     }
+#ifdef _WIN32
+    _mkdir(path.c_str());
+#else
     mkdir(current.c_str(), 0777);
+#endif
+}
+
+std::string GetPluginOutputDir(const char* plugin_dir) {
+    if (g_get_data_path) {
+        const char* base = g_get_data_path();
+        if (base && base[0] != '\0') {
+            return std::string(base) + "/" + plugin_dir;
+        }
+    }
+
+#ifdef _WIN32
+    return std::string(".") + "/" + plugin_dir;
+#else
+    return "/sdcard/Android/media/" + GetPackageName() + "/hachimi/" + plugin_dir;
+#endif
+}
+
+void ResolveStringFunctions() {
+    if (!g_resolve_symbol) {
+        Log("il2cpp_resolve_symbol API is unavailable.");
+        return;
+    }
+
+    g_string_new = (il2cpp_string_new_t)g_resolve_symbol("il2cpp_string_new");
+    g_string_chars = (il2cpp_string_chars_t)g_resolve_symbol("il2cpp_string_chars");
+    g_string_length = (il2cpp_string_length_t)g_resolve_symbol("il2cpp_string_length");
 }
 
 void DumpBuffer(const std::string& name, const void* data, size_t length) {
@@ -277,16 +323,10 @@ void OnGameInitialized() {
     Log("Game initialized, setting up capture hooks...");
     LoadConfig();
     
-    void* handle = dlopen("libil2cpp.so", RTLD_LAZY);
-    if (handle) {
-        g_string_new = (il2cpp_string_new_t)dlsym(handle, "il2cpp_string_new");
-        g_string_chars = (il2cpp_string_chars_t)dlsym(handle, "il2cpp_string_chars");
-        g_string_length = (il2cpp_string_length_t)dlsym(handle, "il2cpp_string_length");
-        // intentionally do NOT dlclose
-    }
+    ResolveStringFunctions();
 
     if (!g_string_new || !g_string_chars || !g_string_length) {
-        Log("Failed to resolve string manipulation functions from libil2cpp.so");
+        Log("Failed to resolve string manipulation functions from il2cpp.");
     }
 
     void* image_uma = g_get_assembly_image("umamusume.dll");
@@ -335,38 +375,36 @@ void OnGameInitialized() {
     }
 }
 
-void* HookThread(void*) {
+void HookThread() {
     while (true) {
         if (g_get_assembly_image) {
             void* image_uma = g_get_assembly_image("umamusume.dll");
             if (image_uma) break;
         }
-        usleep(1000); // 1ms wait
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     OnGameInitialized();
-    return nullptr;
 }
 
-extern "C" bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
+HACHIMI_EXPORT bool hachimi_init_v3(HachimiGetApiFn get_api, int version) {
     g_log = (hachimi_log_t)get_api("log");
     g_hachimi_instance = (hachimi_instance_t)get_api("hachimi_instance");
     g_hachimi_get_interceptor = (hachimi_get_interceptor_t)get_api("hachimi_get_interceptor");
     g_interceptor_hook = (interceptor_hook_t)get_api("interceptor_hook");
+    g_get_data_path = (hachimi_get_data_path_t)get_api("hachimi_get_data_path");
     
     g_get_assembly_image = (il2cpp_get_assembly_image_t)get_api("il2cpp_get_assembly_image");
     g_get_class = (il2cpp_get_class_t)get_api("il2cpp_get_class");
     g_get_method = (il2cpp_get_method_t)get_api("il2cpp_get_method");
     g_get_method_addr = (il2cpp_get_method_addr_t)get_api("il2cpp_get_method_addr");
+    g_resolve_symbol = (il2cpp_resolve_symbol_t)get_api("il2cpp_resolve_symbol");
     
-    std::string pkg = GetPackageName();
-    g_outputDir = "/sdcard/Android/media/" + pkg + "/hachimi/PacketCapture";
+    g_outputDir = GetPluginOutputDir("PacketCapture");
     EnsureDirectory(g_outputDir);
     
     Log("Packet-Capture Plugin Initialized! Output Dir: " + g_outputDir);
     
-    pthread_t t;
-    pthread_create(&t, nullptr, HookThread, nullptr);
-    pthread_detach(t);
+    std::thread(HookThread).detach();
     
     return true;
 }

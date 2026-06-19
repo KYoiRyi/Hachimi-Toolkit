@@ -185,8 +185,53 @@ jobs:
             build/hachimi.dll
             build/hachimi_installer.exe
 
+  build-windows-plugins:
+    runs-on: windows-latest
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build Windows plugins
+        shell: powershell
+        run: .\tools\windows\build_plugins.ps1
+
+      - name: Get checksums for Windows plugin binaries
+        shell: bash
+        run: |
+          curl -L "https://github.com/BLAKE3-team/BLAKE3/releases/latest/download/b3sum_windows_x64_bin.exe" -o b3sum.exe
+          mkdir -p build/windows-plugins
+          {
+            echo "{"
+            first=1
+            for dll in build/windows-plugins/*.dll; do
+              [ -e "$dll" ] || continue
+              hash=($(./b3sum.exe "$dll" | tr -d '\r'))
+              name=$(basename "$dll")
+              if [ "$first" -eq 0 ]; then echo ","; fi
+              printf '  "%s": "%s"' "$name" "$hash"
+              first=0
+            done
+            echo
+            echo "}"
+          } > build/windows-plugins/windows_plugins_blake3.json
+
+      - name: Attest Windows plugins
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            build/windows-plugins/*.dll
+            build/windows-plugins/windows_plugins_blake3.json
+
+      - name: Upload Windows plugin binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-plugins
+          path: |
+            build/windows-plugins/*.dll
+            build/windows-plugins/windows_plugins_blake3.json
+
   create-release:
-    needs: [build-android, build-windows, build-plugins]
+    needs: [build-android, build-windows, build-plugins, build-windows-plugins]
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
     steps:
@@ -259,4 +304,5 @@ jobs:
             artifacts/android/*
             artifacts/windows/*
             artifacts/android-plugins/*
+            artifacts/windows-plugins/*
           tag_name: ${{ env.RELEASE_VERSION }}

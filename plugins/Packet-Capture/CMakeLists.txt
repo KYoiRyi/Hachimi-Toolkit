@@ -1,11 +1,19 @@
 cmake_minimum_required(VERSION 3.10.2)
-project(PacketCapturePlugin)
+project(PacketCapturePlugin LANGUAGES CXX)
 
 add_library(packet_capture SHARED
     src/main.cxx
 )
 
-target_link_libraries(packet_capture log dl)
-set_target_properties(packet_capture PROPERTIES CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -s")
+target_compile_features(packet_capture PRIVATE cxx_std_17)
+
+if(ANDROID)
+    target_link_libraries(packet_capture log dl)
+endif()
+
+if(MSVC)
+    target_compile_options(packet_capture PRIVATE /EHsc)
+else()
+    target_compile_options(packet_capture PRIVATE -fexceptions)
+    set_property(TARGET packet_capture APPEND_STRING PROPERTY LINK_FLAGS " -s")
+endif()
