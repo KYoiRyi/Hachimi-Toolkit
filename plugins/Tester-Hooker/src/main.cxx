@@ -65,6 +65,22 @@ std::string GetIl2CppString(void* str) {
     return s;
 }
 
+uintptr_t GetModuleBase(const char* name) {
+    FILE* f = fopen("/proc/self/maps", "r");
+    if (!f) return 0;
+    char line[512];
+    uintptr_t base = 0;
+    while (fgets(line, sizeof(line), f)) {
+        if (strstr(line, name)) {
+            base = strtoull(line, nullptr, 16);
+            break;
+        }
+    }
+    fclose(f);
+    return base;
+}
+
+// Hook connection open
 typedef bool (*connection_open_t)(void* this_ptr, void* path, void* vfs, void* pwd, int32_t flags, void* method_info);
 static connection_open_t o_ConnectionOpen = nullptr;
 
@@ -78,6 +94,47 @@ static bool h_ConnectionOpen(void* this_ptr, void* path, void* vfs, void* pwd, i
     return o_ConnectionOpen(this_ptr, path, vfs, pwd, flags, method_info);
 }
 
+// Hook MakeMd5
+typedef void* (*make_md5_t)(void* input, void* method_info);
+static make_md5_t o_MakeMd5 = nullptr;
+
+static void* h_MakeMd5(void* input, void* method_info) {
+    std::string s_input = GetIl2CppString(input);
+    Log("Cryptographer::MakeMd5 -> Input: " + s_input);
+    
+    uintptr_t base = GetModuleBase("libil2cpp.so");
+    if (base) {
+        void** slot = (void**)(base + 0x09AFD178);
+        if (slot && *slot) {
+            std::string salt = GetIl2CppString(*slot);
+            Log("Cryptographer::MakeMd5 -> Salt: " + salt);
+        } else {
+            Log("Cryptographer::MakeMd5 -> Salt slot is null or empty");
+        }
+    }
+    
+    void* res = o_MakeMd5(input, method_info);
+    std::string s_res = GetIl2CppString(res);
+    Log("Cryptographer::MakeMd5 -> Result: " + s_res);
+    
+    return res;
+}
+
+// Hook ComputeHash
+typedef void* (*compute_hash_t)(void* data, void* method_info);
+static compute_hash_t o_ComputeHash = nullptr;
+
+static void* h_ComputeHash(void* data, void* method_info) {
+    std::string s_data = GetIl2CppString(data);
+    Log("Cryptographer::ComputeHash -> Data: " + s_data);
+    
+    void* res = o_ComputeHash(data, method_info);
+    std::string s_res = GetIl2CppString(res);
+    Log("Cryptographer::ComputeHash -> Result: " + s_res);
+    
+    return res;
+}
+
 void OnGameInitialized() {
     Log("Game initialized, setting up Tester-Hooker hooks...");
     
@@ -87,14 +144,15 @@ void OnGameInitialized() {
         g_string_length = (il2cpp_string_length_t)dlsym(handle, "il2cpp_string_length");
     }
 
+    void* hachimi = g_hachimi_instance();
+    void* interceptor = g_hachimi_get_interceptor(hachimi);
+
     void* image_libnative = g_get_assembly_image("LibNative.Runtime.dll");
     if (image_libnative) {
         void* klass_conn = g_get_class(image_libnative, "LibNative.Sqlite3", "Connection");
         if (klass_conn) {
             void* a_open = g_get_method_addr(klass_conn, "Open", 4);
             if (a_open) {
-                void* hachimi = g_hachimi_instance();
-                void* interceptor = g_hachimi_get_interceptor(hachimi);
                 o_ConnectionOpen = (connection_open_t)g_interceptor_hook(interceptor, a_open, (void*)h_ConnectionOpen);
                 Log("LibNative.Sqlite3.Connection.Open hook installed.");
             } else {
@@ -103,8 +161,30 @@ void OnGameInitialized() {
         } else {
             Log("Failed to find Connection class.");
         }
-    } else {
-        Log("Failed to find LibNative.Runtime.dll image.");
+    }
+
+    void* image_uma = g_get_assembly_image("umamusume.dll");
+    if (image_uma) {
+        void* klass_crypt = g_get_class(image_uma, "Gallop", "Cryptographer");
+        if (klass_crypt) {
+            void* a_makemd5 = g_get_method_addr(klass_crypt, "MakeMd5", 1);
+            if (a_makemd5) {
+                o_MakeMd5 = (make_md5_t)g_interceptor_hook(interceptor, a_makemd5, (void*)h_MakeMd5);
+                Log("Gallop.Cryptographer.MakeMd5 hook installed.");
+            } else {
+                Log("Failed to find Cryptographer.MakeMd5.");
+            }
+            
+            void* a_computehash = g_get_method_addr(klass_crypt, "ComputeHash", 1);
+            if (a_computehash) {
+                o_ComputeHash = (compute_hash_t)g_interceptor_hook(interceptor, a_computehash, (void*)h_ComputeHash);
+                Log("Gallop.Cryptographer.ComputeHash hook installed.");
+            } else {
+                Log("Failed to find Cryptographer.ComputeHash.");
+            }
+        } else {
+            Log("Failed to find Gallop.Cryptographer class.");
+        }
     }
 }
 
