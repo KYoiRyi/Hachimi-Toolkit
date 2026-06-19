@@ -106,24 +106,29 @@ static void* h_MakeMd5(void* input, void* method_info) {
     if (base) {
         void** slot = (void**)(base + 0x09AFD178);
         if (slot && *slot) {
-            void* str_ptr = *slot;
-            int32_t len = g_string_length ? g_string_length(str_ptr) : -1;
-            uint16_t* chars = g_string_chars ? g_string_chars(str_ptr) : nullptr;
-            std::string raw_hex = "";
-            std::string printable = "";
-            if (chars) {
-                for (int i = 0; i < (len > 64 ? 64 : len); ++i) {
-                    char tmp[8];
-                    sprintf(tmp, "%04X ", chars[i]);
-                    raw_hex += tmp;
-                    if (chars[i] >= 0x20 && chars[i] < 0x7F) {
-                        printable += (char)chars[i];
-                    } else {
-                        printable += ".";
+            void** str_slot = (void**)(*slot);
+            if (str_slot && *str_slot) {
+                void* str_ptr = *str_slot;
+                int32_t len = g_string_length ? g_string_length(str_ptr) : -1;
+                uint16_t* chars = g_string_chars ? g_string_chars(str_ptr) : nullptr;
+                std::string raw_hex = "";
+                std::string printable = "";
+                if (chars) {
+                    for (int i = 0; i < (len > 64 ? 64 : len); ++i) {
+                        char tmp[8];
+                        sprintf(tmp, "%04X ", chars[i]);
+                        raw_hex += tmp;
+                        if (chars[i] >= 0x20 && chars[i] < 0x7F) {
+                            printable += (char)chars[i];
+                        } else {
+                            printable += ".";
+                        }
                     }
                 }
+                Log("Cryptographer::MakeMd5 -> Salt ptr: " + std::to_string((uintptr_t)str_ptr) + ", len: " + std::to_string(len) + ", hex: " + raw_hex + ", printable: " + printable);
+            } else {
+                Log("Cryptographer::MakeMd5 -> Salt ptr slot points to null");
             }
-            Log("Cryptographer::MakeMd5 -> Salt ptr: " + std::to_string((uintptr_t)str_ptr) + ", len: " + std::to_string(len) + ", hex: " + raw_hex + ", printable: " + printable);
         } else {
             Log("Cryptographer::MakeMd5 -> Salt slot is null or empty");
         }
