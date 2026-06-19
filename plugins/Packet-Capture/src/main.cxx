@@ -218,10 +218,11 @@ static void* h_Post(void* this_ptr, void* url_str, void* postData, void* headers
         }
     }
     
-    static time_t process_start_time = time(NULL);
+    static auto process_start_time = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
     int seq = ++g_req_seq;
     char prefix[256];
-    snprintf(prefix, sizeof(prefix), "%ld_%05d_%s", (long)process_start_time, seq, path_name.c_str());
+    snprintf(prefix, sizeof(prefix), "%lld_%05d_%s", (long long)process_start_time, seq, path_name.c_str());
     std::string final_prefix = prefix;
     
     Log("Captured POST: " + s_url);
