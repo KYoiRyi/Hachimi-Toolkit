@@ -99,14 +99,13 @@ void EnsureDirectory(const std::string& path) {
 }
 
 std::string GetPluginOutputDir(const char* plugin_dir) {
+#ifdef _WIN32
     if (g_get_data_path) {
         const char* base = g_get_data_path();
         if (base && base[0] != '\0') {
             return std::string(base) + "/" + plugin_dir;
         }
     }
-
-#ifdef _WIN32
     return std::string(".") + "/" + plugin_dir;
 #else
     return "/sdcard/Android/media/" + GetPackageName() + "/hachimi/" + plugin_dir;
